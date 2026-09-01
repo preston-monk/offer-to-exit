@@ -26,10 +26,141 @@ resale-pricing policy over a 17-week horizon.
 > responses, and decision behavior—not evidence about any real operator or
 > housing market.
 
-## The decision in two minutes
+This is an applied economics case study rather than a formal research paper, but
+it follows the same discipline: state the economic setting, define the choice and
+counterfactual, explain what the data can identify, solve the decision, and
+separate the evidence from the claims. The code makes that argument executable
+and auditable.
 
-An acquisition offer creates value only through the resale policy that follows
-acceptance. Offer-to-Exit therefore connects four uncertain objects:
+## Economic setting: a housing market maker with costly inventory
+
+Offer-to-Exit treats a home acquisition operator as a balance-sheet
+intermediary. It posts a bid to acquire a house, carries the house as inventory
+if the seller accepts, and then posts an ask price to resell it. The expected
+bid-ask spread must compensate the operator for repairs, transaction costs,
+financing, inventory duration, valuation error, and downside risk.
+
+| Stage | Choice | Economic tradeoff |
+|---|---|---|
+| Acquisition | Offer \(a\) | A higher offer raises seller acceptance but compresses the spread conditional on purchase. |
+| Initial listing | Price \(p_0\) | A higher price raises proceeds conditional on sale but lowers the probability of selling quickly. |
+| Unsold inventory | Hold or mark down | Waiting preserves upside but incurs holding costs and additional market exposure. |
+| End of horizon | Terminal exit | A finite terminal value prevents the model from treating indefinite delay as free. |
+
+The real question is:
+
+> How much should we pay for a home, given the best way we expect to liquidate
+> it, and once we own it, how aggressively should we price it through time?
+
+### The buyer side: a posted price and a weekly sale hazard
+
+The model does not follow a named buyer making an individual yes-or-no decision.
+It represents aggregate buyer demand as a weekly sale hazard. For state \(s_t\)
+and posted list price \(p_t\), the hazard is the probability that the home sells
+during week \(t\), conditional on remaining unsold when the week begins:
+
+\[
+h_t(p_t \mid s_t)
+=
+\Pr\!\left(
+\text{sale in week }t
+\mid
+\text{unsold at }t,\;p_t,\;s_t
+\right).
+\]
+
+The operator posts \(p_t\). During the week, the home either sells or remains
+inventory. A sale realizes net proceeds. No sale produces another week of
+financing, taxes, maintenance, and market exposure, while reducing the time
+remaining to exit.
+
+The weekly pricing problem is represented by the Bellman recursion
+
+\[
+\begin{aligned}
+V_t(s_t)=\max_{p_t\in\mathcal P(s_t)}\Big\{&
+h_t(p_t\mid s_t)\,
+\mathbb E[\text{net proceeds}_t\mid\text{sale}] \\
+&+\left[1-h_t(p_t\mid s_t)\right]
+\left[-H_t+V_{t+1}(s_{t+1})\right]
+\Big\}.
+\end{aligned}
+\]
+
+Here \(H_t\) is the cost of carrying the home for another week. The terminal
+value at week 17 disciplines every earlier price. Backward induction compares
+the value of selling now with the continuation value of remaining unsold.
+
+That recursion contains the economic heart of the project:
+
+- A higher list price increases proceeds conditional on sale.
+- A higher list price may reduce the weekly sale hazard.
+- Failing to sell creates a cost today and leaves an aging, risky asset tomorrow.
+- The remaining horizon determines how valuable waiting still is.
+
+### Why inventory duration matters
+
+A house is a large, indivisible, illiquid unit of inventory. Getting it off the
+balance sheet matters because delay has an opportunity cost even if the eventual
+nominal sale price does not change. Holding the home ties up capital, incurs
+financing and operating costs, creates exposure to falling prices, and increases
+uncertainty about eventual proceeds.
+
+A \$400,000 sale in three weeks and a \$400,000 sale in seventeen weeks are not
+economically equivalent. The objective is not the highest eventual resale price.
+It is the best risk-adjusted contribution value after time, costs, liquidity, and
+uncertainty are priced.
+
+### Why acquisition must incorporate resale
+
+Before choosing the acquisition offer, the operator solves the resale problem
+backward. This produces the continuation value of owning the home under the best
+feasible exit policy. A stylized acquisition problem is
+
+\[
+\begin{aligned}
+a^*=\arg\max_{a\in\mathcal A}\;&
+q(a\mid x)\left[V_0^*(x)-a-R(x)-C(x)\right] \\
+&-\lambda\,\operatorname{CVaR}_{0.95}
+\!\left[-\Pi(a,\pi^*)\right].
+\end{aligned}
+\]
+
+The term \(q(a\mid x)\) is the seller's acceptance probability. The continuation
+value \(V_0^*(x)\) summarizes the best feasible resale path, including the
+weekly probability of sale and holding costs. \(R(x)\) and \(C(x)\) denote repair
+and transaction costs. CVaR is the average loss in the worst 5% of simulated
+outcomes, and \(\lambda\) is an operator risk preference rather than a parameter
+identified from the data.
+
+A higher acquisition offer:
+
+- raises the probability of acquiring the home;
+- reduces the spread conditional on acquisition;
+- leaves less protection against valuation and cost error; and
+- makes the resale policy more sensitive to weak demand and long duration.
+
+This is why acquisition pricing and resale pricing cannot be separate exercises.
+The maximum offer worth making depends on the liquidity, costs, and downside risk
+of the optimal exit path.
+
+### What this is really about
+
+Offer-to-Exit is a single-property dynamic inventory-pricing model for a
+balance-sheet intermediary. Its closest economic relatives are dealer and
+market-making models, dynamic pricing and revenue management, inventory theory,
+search and bilateral bargaining, optimal stopping, duration modeling, and
+stochastic dynamic programming.
+
+The acquisition offer is the bid. The resale price is the ask. The current
+project captures that logic for one home. It does not yet model portfolio capital
+allocation, correlated inventory risk, geographic concentration, or balance-sheet
+capacity. Those are the objects needed to move from a property-level decision to
+a complete inventory-management problem.
+
+## The linked decision system
+
+The economic setting requires four uncertain objects:
 
 1. a distribution of resale value at exit;
 2. seller acceptance under each candidate acquisition offer;
@@ -43,10 +174,8 @@ For acquisition offer \(a\) and resale policy \(\pi\), the system searches for
 - \lambda\,\operatorname{CVaR}_{0.95}[-\Pi(a,\pi)].
 \]
 
-The continuation value of \(\pi\)—the risk-adjusted value of the best feasible
-resale path after acquisition—links the two decisions. CVaR is the average loss
-in the worst 5% of simulated outcomes; \(\lambda\) expresses a risk preference,
-not a statistical truth.
+The continuation value of \(\pi\), the risk-adjusted value of the best feasible
+resale path after acquisition, links the two decisions.
 
 ```mermaid
 flowchart LR
