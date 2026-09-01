@@ -1,0 +1,50 @@
+{
+  "claim_scope": "All behavioral responses, counterfactuals, policy economics, and model metrics in this run are semi-synthetic results—not estimates of any real operator, homeowner population, or housing market.",
+  "evaluation_environment": "independent shifted semi-synthetic holdout",
+  "metrics": {
+    "evaluation_contract": {
+      "behavioral_truth_used_for_scoring_only": true,
+      "environment": "independent shifted semi-synthetic holdout",
+      "right_censoring_preserved": true,
+      "used_for_fitting": false
+    },
+    "sale_hazard": {
+      "absolute_response_recovery_error": 0.022867,
+      "counterfactual_response_monotone": true,
+      "estimated_log_odds_effect_per_10pp_overpricing": -1.177133,
+      "evaluation_listings": 213,
+      "evaluation_person_periods": 1389,
+      "mean_predicted_sell_through_by_horizon": 0.902334,
+      "period_rate_baseline_brier": 0.11859,
+      "period_rate_baseline_log_loss": 0.402521,
+      "person_period_brier_score": 0.117103,
+      "person_period_log_loss": 0.392234,
+      "truth_log_odds_effect_per_10pp_overpricing": -1.2
+    },
+    "seller_acceptance": {
+      "absolute_response_recovery_error": 0.263447,
+      "brier_score": 0.196529,
+      "counterfactual_response_monotone": true,
+      "estimated_log_odds_effect_per_10pp_offer": 1.336553,
+      "evaluation_rows": 480,
+      "expected_calibration_error_10_bin": 0.056063,
+      "log_loss": 0.575083,
+      "pooled_rate_baseline_brier": 0.246875,
+      "truth_log_odds_effect_per_10pp_offer": 1.6
+    },
+    "valuation": {
+      "evaluation_rows": 480,
+      "interval_coverage": 0.9,
+      "interval_nominal_coverage": 0.9,
+      "mae_improvement_over_pooled_median": 0.64767,
+      "mean_absolute_error": 43536.33,
+      "median_absolute_error": 32777.05,
+      "median_absolute_percentage_error": 0.078321,
+      "median_interval_width_rate": 0.356525,
+      "pooled_median_baseline_mae": 123567.07,
+      "wape": 0.093178
+    }
+  },
+  "run_id": "release-seed-20260901-schema-1",
+  "schema_version": 1
+}

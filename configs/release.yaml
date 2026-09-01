@@ -1,0 +1,23 @@
+schema_version: 1
+
+# This is the exact configuration used to build artifacts/release/.
+run:
+  name: release
+  mode: semi_synthetic
+  seed: 20260901
+  output_dir: artifacts/release
+  overwrite: true
+
+market:
+  name: Phoenix-Mesa-Chandler
+  exit_horizon_weeks: 17
+
+data:
+  source_mode: generated_fixture
+  generated_property_count: 1200
+  split:
+    train_fraction: 0.60
+
+simulator:
+  training_seed: 1129
+  evaluation_seed: 4079

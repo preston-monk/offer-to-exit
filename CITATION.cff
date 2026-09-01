@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "Offer-to-Exit: Pricing a Home Under Uncertainty"
+type: software
+authors:
+  - family-names: Monk
+    given-names: Thomas Preston
+version: 0.1.0
+license: MIT
+abstract: >-
+  A reproducible decision system connecting residential acquisition offers to
+  risk-aware resale pricing in a Phoenix/Maricopa-shaped semi-synthetic
+  environment.
+keywords:
+  - housing economics
+  - pricing
+  - uncertainty quantification
+  - decision science
+  - causal simulation
+  - survival analysis

@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Environments and local settings
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Data zones: only documentation and small sample fixtures are versioned
+data/raw/
+data/external/
+data/interim/
+data/processed/
+data/cache/
+!data/sample/
+!data/sample/**
+
+# Generated models and experiment outputs. A small, deterministic release
+# bundle is versioned so the published evidence remains reproducible.
+artifacts/*
+!artifacts/release/
+!artifacts/release/**
+/models/
+mlruns/
+*.joblib
+*.pkl
+*.parquet
+
+# Local demo and service state
+.streamlit/secrets.toml
+*.db
+*.sqlite
+*.sqlite3

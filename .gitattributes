@@ -1,0 +1,3 @@
+# Keep deterministic release outputs visible while excluding them from language statistics.
+artifacts/release/** linguist-generated
+artifacts/release/demo.html linguist-vendored linguist-detectable=false

@@ -1,0 +1,369 @@
+{
+  "artifact_version": "v1",
+  "artifacts": {
+    "decision_cases": "artifacts/release/decision_cases.v1.csv",
+    "demo": "artifacts/release/demo.html",
+    "figures": [
+      "artifacts/release/valuation_evaluation.v1.png",
+      "artifacts/release/acceptance_response.v1.png",
+      "artifacts/release/hazard_sell_through.v1.png"
+    ],
+    "manifest": "artifacts/release/run_manifest.v1.json",
+    "metrics": "artifacts/release/metrics.v1.json",
+    "output_dir": "artifacts/release",
+    "summary": "artifacts/release/summary.v1.json"
+  },
+  "claim_scope": "All behavioral responses, counterfactuals, policy economics, and model metrics in this run are semi-synthetic results—not estimates of any real operator, homeowner population, or housing market.",
+  "data": {
+    "listing_period_days": 7,
+    "max_listing_periods": 17,
+    "n_evaluation_homes": 480,
+    "n_evaluation_listings": 213,
+    "n_train_homes": 720,
+    "n_train_listings": 315,
+    "source": "generated semi-synthetic fixture"
+  },
+  "decision_cases": [
+    {
+      "acceptance_probability": 0.246011,
+      "automated_offer": 348000.0,
+      "downside_cvar_loss": 564.46,
+      "evidence_scope": "worked semi-synthetic scenario; not real-market performance",
+      "expected_profit_per_lead": 4829.46,
+      "first_action": "hold",
+      "first_post_action_list_price": 410000.0,
+      "home_id": "PHX-HEALTHY-001",
+      "initial_list_price": 410000.0,
+      "loss_probability": 0.00567,
+      "name": "healthy-demand-margin-protection",
+      "no_sale_path": [
+        {
+          "action": "hold",
+          "post_action_list_price": 410000.0,
+          "week": 0,
+          "weekly_sale_probability": 0.248505
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 410000.0,
+          "week": 1,
+          "weekly_sale_probability": 0.252204
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 410000.0,
+          "week": 2,
+          "weekly_sale_probability": 0.255938
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 410000.0,
+          "week": 3,
+          "weekly_sale_probability": 0.259709
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 410000.0,
+          "week": 4,
+          "weekly_sale_probability": 0.263515
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 410000.0,
+          "week": 5,
+          "weekly_sale_probability": 0.267355
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 410000.0,
+          "week": 6,
+          "weekly_sale_probability": 0.271231
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 410000.0,
+          "week": 7,
+          "weekly_sale_probability": 0.275141
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 410000.0,
+          "week": 8,
+          "weekly_sale_probability": 0.279086
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 410000.0,
+          "week": 9,
+          "weekly_sale_probability": 0.283064
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 410000.0,
+          "week": 10,
+          "weekly_sale_probability": 0.287076
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 410000.0,
+          "week": 11,
+          "weekly_sale_probability": 0.291121
+        }
+      ],
+      "question": "How much price should we preserve when demand is healthy?",
+      "recommendation": "price",
+      "recommendation_reason": "best supported offer has positive risk-adjusted value",
+      "reference_value": 400000.0,
+      "risk_adjusted_objective": 4716.57,
+      "selected_offer": 348000.0,
+      "selected_offer_ratio": 0.87
+    },
+    {
+      "acceptance_probability": 0.231475,
+      "automated_offer": null,
+      "downside_cvar_loss": 61418.56,
+      "evidence_scope": "worked semi-synthetic scenario; not real-market performance",
+      "expected_profit_per_lead": -6198.88,
+      "first_action": "cut_5_pct",
+      "first_post_action_list_price": 612750.0,
+      "home_id": "PHX-STALE-002",
+      "initial_list_price": 645000.0,
+      "loss_probability": 0.141304,
+      "name": "stale-inventory-high-carry",
+      "no_sale_path": [
+        {
+          "action": "cut_5_pct",
+          "post_action_list_price": 612750.0,
+          "week": 0,
+          "weekly_sale_probability": 0.033556
+        },
+        {
+          "action": "cut_2_5_pct",
+          "post_action_list_price": 597431.25,
+          "week": 1,
+          "weekly_sale_probability": 0.046866
+        },
+        {
+          "action": "cut_1_pct",
+          "post_action_list_price": 591456.94,
+          "week": 2,
+          "weekly_sale_probability": 0.052997
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 591456.94,
+          "week": 3,
+          "weekly_sale_probability": 0.052506
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 591456.94,
+          "week": 4,
+          "weekly_sale_probability": 0.052018
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 591456.94,
+          "week": 5,
+          "weekly_sale_probability": 0.051536
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 591456.94,
+          "week": 6,
+          "weekly_sale_probability": 0.051057
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 591456.94,
+          "week": 7,
+          "weekly_sale_probability": 0.050582
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 591456.94,
+          "week": 8,
+          "weekly_sale_probability": 0.050112
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 591456.94,
+          "week": 9,
+          "weekly_sale_probability": 0.049646
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 591456.94,
+          "week": 10,
+          "weekly_sale_probability": 0.049183
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 591456.94,
+          "week": 11,
+          "weekly_sale_probability": 0.048725
+        }
+      ],
+      "question": "When does a deeper markdown beat another costly week on market?",
+      "recommendation": "abstain",
+      "recommendation_reason": "every supported offer has non-positive risk-adjusted value",
+      "reference_value": 600000.0,
+      "risk_adjusted_objective": -33837.23,
+      "selected_offer": 510000.0,
+      "selected_offer_ratio": 0.85
+    },
+    {
+      "acceptance_probability": 0.177994,
+      "automated_offer": null,
+      "downside_cvar_loss": 9086.36,
+      "evidence_scope": "worked semi-synthetic scenario; not real-market performance",
+      "expected_profit_per_lead": 851.71,
+      "first_action": "cut_2_5_pct",
+      "first_post_action_list_price": 329550.0,
+      "home_id": "PHX-THIN-COMPS-003",
+      "initial_list_price": 338000.0,
+      "loss_probability": 0.035822,
+      "name": "thin-comps-downside-protection",
+      "no_sale_path": [
+        {
+          "action": "cut_2_5_pct",
+          "post_action_list_price": 329550.0,
+          "week": 0,
+          "weekly_sale_probability": 0.109894
+        },
+        {
+          "action": "cut_1_pct",
+          "post_action_list_price": 326254.5,
+          "week": 1,
+          "weekly_sale_probability": 0.119255
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 326254.5,
+          "week": 2,
+          "weekly_sale_probability": 0.119255
+        },
+        {
+          "action": "cut_2_5_pct",
+          "post_action_list_price": 318098.14,
+          "week": 3,
+          "weekly_sale_probability": 0.145222
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 318098.14,
+          "week": 4,
+          "weekly_sale_probability": 0.145222
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 318098.14,
+          "week": 5,
+          "weekly_sale_probability": 0.145222
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 318098.14,
+          "week": 6,
+          "weekly_sale_probability": 0.145222
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 318098.14,
+          "week": 7,
+          "weekly_sale_probability": 0.145222
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 318098.14,
+          "week": 8,
+          "weekly_sale_probability": 0.145222
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 318098.14,
+          "week": 9,
+          "weekly_sale_probability": 0.145222
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 318098.14,
+          "week": 10,
+          "weekly_sale_probability": 0.145222
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 318098.14,
+          "week": 11,
+          "weekly_sale_probability": 0.145222
+        }
+      ],
+      "question": "How should uncertainty change both the offer and exit policy?",
+      "recommendation": "abstain",
+      "recommendation_reason": "every supported offer has non-positive risk-adjusted value",
+      "reference_value": 325000.0,
+      "risk_adjusted_objective": -7326.01,
+      "selected_offer": 266500.0,
+      "selected_offer_ratio": 0.82
+    }
+  ],
+  "market_shape": "Phoenix-Mesa-Chandler",
+  "metrics": {
+    "evaluation_contract": {
+      "behavioral_truth_used_for_scoring_only": true,
+      "environment": "independent shifted semi-synthetic holdout",
+      "right_censoring_preserved": true,
+      "used_for_fitting": false
+    },
+    "sale_hazard": {
+      "absolute_response_recovery_error": 0.022867,
+      "counterfactual_response_monotone": true,
+      "estimated_log_odds_effect_per_10pp_overpricing": -1.177133,
+      "evaluation_listings": 213,
+      "evaluation_person_periods": 1389,
+      "mean_predicted_sell_through_by_horizon": 0.902334,
+      "period_rate_baseline_brier": 0.11859,
+      "period_rate_baseline_log_loss": 0.402521,
+      "person_period_brier_score": 0.117103,
+      "person_period_log_loss": 0.392234,
+      "truth_log_odds_effect_per_10pp_overpricing": -1.2
+    },
+    "seller_acceptance": {
+      "absolute_response_recovery_error": 0.263447,
+      "brier_score": 0.196529,
+      "counterfactual_response_monotone": true,
+      "estimated_log_odds_effect_per_10pp_offer": 1.336553,
+      "evaluation_rows": 480,
+      "expected_calibration_error_10_bin": 0.056063,
+      "log_loss": 0.575083,
+      "pooled_rate_baseline_brier": 0.246875,
+      "truth_log_odds_effect_per_10pp_offer": 1.6
+    },
+    "valuation": {
+      "evaluation_rows": 480,
+      "interval_coverage": 0.9,
+      "interval_nominal_coverage": 0.9,
+      "mae_improvement_over_pooled_median": 0.64767,
+      "mean_absolute_error": 43536.33,
+      "median_absolute_error": 32777.05,
+      "median_absolute_percentage_error": 0.078321,
+      "median_interval_width_rate": 0.356525,
+      "pooled_median_baseline_mae": 123567.07,
+      "wape": 0.093178
+    }
+  },
+  "mode": "semi_synthetic",
+  "package_version": "0.1.0",
+  "reproducibility": {
+    "config_path": "configs/release.yaml",
+    "config_sha256": "7478ddc9750a3b673c7cc8f672712c249908afe49c58cdfd3561cbd34d44c479",
+    "evaluation_seed": 4079,
+    "evaluation_truth_excluded_from_model_fitting": true,
+    "independent_evaluation_environment": true,
+    "run_seed": 20260901,
+    "training_seed": 1129
+  },
+  "run_id": "release-seed-20260901-schema-1",
+  "run_name": "release",
+  "schema_version": 1
+}
