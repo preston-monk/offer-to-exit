@@ -42,8 +42,8 @@ financing, inventory duration, valuation error, and downside risk.
 
 | Stage | Choice | Economic tradeoff |
 |---|---|---|
-| Acquisition | Offer \(a\) | A higher offer raises seller acceptance but compresses the spread conditional on purchase. |
-| Initial listing | Price \(p_0\) | A higher price raises proceeds conditional on sale but lowers the probability of selling quickly. |
+| Acquisition | Offer $a$ | A higher offer raises seller acceptance but compresses the spread conditional on purchase. |
+| Initial listing | Price $p_0$ | A higher price raises proceeds conditional on sale but lowers the probability of selling quickly. |
 | Unsold inventory | Hold or mark down | Waiting preserves upside but incurs holding costs and additional market exposure. |
 | End of horizon | Terminal exit | A finite terminal value prevents the model from treating indefinite delay as free. |
 
@@ -55,11 +55,11 @@ The real question is:
 ### The buyer side: a posted price and a weekly sale hazard
 
 The model does not follow a named buyer making an individual yes-or-no decision.
-It represents aggregate buyer demand as a weekly sale hazard. For state \(s_t\)
-and posted list price \(p_t\), the hazard is the probability that the home sells
-during week \(t\), conditional on remaining unsold when the week begins:
+It represents aggregate buyer demand as a weekly sale hazard. For state $s_t$
+and posted list price $p_t$, the hazard is the probability that the home sells
+during week $t$, conditional on remaining unsold when the week begins:
 
-\[
+```math
 h_t(p_t \mid s_t)
 =
 \Pr\!\left(
@@ -67,16 +67,16 @@ h_t(p_t \mid s_t)
 \mid
 \text{unsold at }t,\;p_t,\;s_t
 \right).
-\]
+```
 
-The operator posts \(p_t\). During the week, the home either sells or remains
+The operator posts $p_t$. During the week, the home either sells or remains
 inventory. A sale realizes net proceeds. No sale produces another week of
 financing, taxes, maintenance, and market exposure, while reducing the time
 remaining to exit.
 
 The weekly pricing problem is represented by the Bellman recursion
 
-\[
+```math
 \begin{aligned}
 V_t(s_t)=\max_{p_t\in\mathcal P(s_t)}\Big\{&
 h_t(p_t\mid s_t)\,
@@ -85,9 +85,9 @@ h_t(p_t\mid s_t)\,
 \left[-H_t+V_{t+1}(s_{t+1})\right]
 \Big\}.
 \end{aligned}
-\]
+```
 
-Here \(H_t\) is the cost of carrying the home for another week. The terminal
+Here $H_t$ is the cost of carrying the home for another week. The terminal
 value at week 17 disciplines every earlier price. Backward induction compares
 the value of selling now with the continuation value of remaining unsold.
 
@@ -117,20 +117,20 @@ Before choosing the acquisition offer, the operator solves the resale problem
 backward. This produces the continuation value of owning the home under the best
 feasible exit policy. A stylized acquisition problem is
 
-\[
+```math
 \begin{aligned}
 a^*=\arg\max_{a\in\mathcal A}\;&
 q(a\mid x)\left[V_0^*(x)-a-R(x)-C(x)\right] \\
 &-\lambda\,\operatorname{CVaR}_{0.95}
 \!\left[-\Pi(a,\pi^*)\right].
 \end{aligned}
-\]
+```
 
-The term \(q(a\mid x)\) is the seller's acceptance probability. The continuation
-value \(V_0^*(x)\) summarizes the best feasible resale path, including the
-weekly probability of sale and holding costs. \(R(x)\) and \(C(x)\) denote repair
+The term $q(a\mid x)$ is the seller's acceptance probability. The continuation
+value $V_0^*(x)$ summarizes the best feasible resale path, including the
+weekly probability of sale and holding costs. $R(x)$ and $C(x)$ denote repair
 and transaction costs. CVaR is the average loss in the worst 5% of simulated
-outcomes, and \(\lambda\) is an operator risk preference rather than a parameter
+outcomes, and $\lambda$ is an operator risk preference rather than a parameter
 identified from the data.
 
 A higher acquisition offer:
@@ -167,14 +167,14 @@ The economic setting requires four uncertain objects:
 3. weekly sale probability under each candidate resale list price; and
 4. closing proceeds, repair cost, transaction cost, and cost of holding inventory.
 
-For acquisition offer \(a\) and resale policy \(\pi\), the system searches for
+For acquisition offer $a$ and resale policy $\pi$, the system searches for
 
-\[
+```math
 \max_{a,\pi}\; \mathbb{E}[\Pi(a,\pi)]
 - \lambda\,\operatorname{CVaR}_{0.95}[-\Pi(a,\pi)].
-\]
+```
 
-The continuation value of \(\pi\), the risk-adjusted value of the best feasible
+The continuation value of $\pi$, the risk-adjusted value of the best feasible
 resale path after acquisition, links the two decisions.
 
 ```mermaid

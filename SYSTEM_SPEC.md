@@ -25,18 +25,18 @@ risk-adjusted value.
 
 ## Economic object
 
-For property \(i\), acquisition offer \(a_i\), seller-acceptance indicator
-\(S_i(a_i)\), closing proceeds \(Y_{i\tau}\), and resale policy \(\pi\),
+For property $i$, acquisition offer $a_i$, seller-acceptance indicator
+$S_i(a_i)$, closing proceeds $Y_{i\tau}$, and resale policy $\pi$,
 contribution profit is
 
-\[
+```math
 \Pi_i(a_i,\pi) = S_i(a_i)\left[
 Y_{i\tau} - a_i - R_i - C_i(Y_{i\tau})
 - \sum_{t=0}^{\tau}H_{it}
 \right],
-\]
+```
 
-where \(R_i\), \(C_i\), and \(H_{it}\) denote repair, closing, and weekly holding
+where $R_i$, $C_i$, and $H_{it}$ denote repair, closing, and weekly holding
 costs. Each acquisition offer is evaluated using the continuation value of the
 best feasible resale policy that follows acceptance. Optimizing acceptance and
 resale pricing as unrelated tasks would violate this contract.
@@ -66,11 +66,11 @@ claim of real-market transportability or comprehensive robustness.
 
 ## Information-time rules
 
-At decision time \(t\), every feature \(x_j\) must satisfy
+At decision time $t$, every feature $x_j$ must satisfy
 
-\[
+```math
 \operatorname{available\_at}(x_j) \leq t.
-\]
+```
 
 Quote-time models cannot use repair or listing information learned after an
 offer. Weekly decisions use only prior-week demand. Comparable sales must be

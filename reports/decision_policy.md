@@ -6,14 +6,14 @@ Offer-to-Exit chooses an acquisition offer and, conditional on acceptance, a
 weekly resale-price policy. The policy maximizes risk-adjusted contribution value,
 not valuation accuracy, offer acceptance, or sell-through in isolation.
 
-For offer \(a\), exit policy \(\pi\), and contribution profit \(\Pi\):
+For offer $a$, exit policy $\pi$, and contribution profit $\Pi$:
 
-\[
+```math
 U(a,\pi) = \mathbb{E}[\Pi(a,\pi)]
 - \lambda\operatorname{CVaR}_{0.95}[-\Pi(a,\pi)].
-\]
+```
 
-The risk-aversion parameter \(\lambda\) is configured and disclosed. Results must
+The risk-aversion parameter $\lambda$ is configured and disclosed. Results must
 include the risk-neutral comparison rather than imply one setting is universally
 correct.
 

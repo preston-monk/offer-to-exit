@@ -71,7 +71,7 @@ they are not silently labeled as sales or zero-valued outcomes.
 ## Temporal contract
 
 Every feature must carry or inherit an availability timestamp. For a quote-time
-decision, `available_at <= quote_date`. For a week-\(t\) resale decision, only
+decision, `available_at <= quote_date`. For a week-$t$ resale decision, only
 information available before that action may be used.
 
 The following are prohibited predictors:

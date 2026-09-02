@@ -24,14 +24,14 @@ The output vocabulary is deliberately operational:
 
 ## 2. Linked acquisition and resale economics
 
-Let \(q(a)\) denote the probability that a seller accepts acquisition offer
-\(a\). Let \(J_0^*(a)\) denote the optimized continuation value of resale after
+Let $q(a)$ denote the probability that a seller accepts acquisition offer
+$a$. Let $J_0^*(a)$ denote the optimized continuation value of resale after
 the home is acquired. The acquisition problem is
 
-\[
+```math
 a^*=\arg\max_{a\in\mathcal A}
 q(a)J_0^*(a)-\text{downside penalty},
-\]
+```
 
 subject to margin, sell-through, loss, and support constraints. Continuation
 value is the expected risk-adjusted contribution from the best feasible resale
@@ -39,19 +39,19 @@ path, conditional on owning the home. This is the link that prevents the offer
 model from treating liquidity, carrying cost, and markdown flexibility as an
 afterthought.
 
-For weekly resale state \(s_t\) and price action \(u_t\), backward recursion uses
+For weekly resale state $s_t$ and price action $u_t$, backward recursion uses
 
-\[
+```math
 Q_t(s_t,u_t)=
 h_t(s_t,u_t)\,\mathbb{E}[\text{net proceeds}\mid\text{sale}]
 +(1-h_t(s_t,u_t))\left[-H_t+V_{t+1}(s_{t+1})\right],
-\]
+```
 
-\[
+```math
 V_t(s_t)=\max_{u_t\in\mathcal U(s_t)}Q_t(s_t,u_t).
-\]
+```
 
-Here \(h_t\) is the probability of selling during week \(t\), conditional on
+Here $h_t$ is the probability of selling during week $t$, conditional on
 remaining unsold. The feasible actions are hold, cut 1%, cut 2.5%, and cut 5%.
 The optimizer carries an explicit terminal value at the 17-week horizon.
 
