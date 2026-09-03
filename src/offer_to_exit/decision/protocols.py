@@ -10,7 +10,7 @@ from .types import HomeContext, PriceAction, PricingState, SaleScenario
 
 @runtime_checkable
 class SaleOutcomeModel(Protocol):
-    """Produces calibrated weekly sale scenarios for a post-action state."""
+    """Produces weighted weekly sale scenarios for a post-action state."""
 
     def sale_scenarios(
         self, context: HomeContext, state: PricingState
@@ -19,7 +19,7 @@ class SaleOutcomeModel(Protocol):
 
 @runtime_checkable
 class AcceptanceModel(Protocol):
-    """Estimates causal seller acceptance for an offered acquisition price."""
+    """Scores seller acceptance for an offered acquisition price."""
 
     def acceptance_probability(self, context: HomeContext, offer: float) -> float: ...
 

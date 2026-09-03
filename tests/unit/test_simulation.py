@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 
 from offer_to_exit.simulation import (
+    LIST_PRICE_PREMIUM_SUPPORT,
+    OFFER_RATIO_SUPPORT,
     CausalParameters,
     EnvironmentConfig,
     simulate_environment,
@@ -30,6 +32,38 @@ def test_environment_generation_is_deterministic() -> None:
     pd.testing.assert_frame_equal(first.offers, second.offers)
     pd.testing.assert_frame_equal(first.listings, second.listings)
     pd.testing.assert_frame_equal(first.survival_panel, second.survival_panel)
+
+
+def test_offer_assignment_uses_observable_preoffer_reference() -> None:
+    environment = simulate_environment(
+        EnvironmentConfig(name="observable_offer_reference", seed=71, n_homes=500)
+    )
+    offers = environment.offers
+
+    assert offers["preoffer_reference_value"].gt(0).all()
+    assert offers["offer_ratio"].between(*OFFER_RATIO_SUPPORT, inclusive="both").all()
+    np.testing.assert_allclose(
+        offers["offer_price"] / offers["preoffer_reference_value"],
+        offers["offer_ratio"],
+    )
+    assert not np.allclose(
+        offers["offer_price"] / offers["true_market_value"],
+        offers["offer_ratio"],
+    )
+    listings = environment.listings
+    assert listings["prelisting_reference_value"].gt(0).all()
+    assert (
+        listings["list_price_premium"].between(*LIST_PRICE_PREMIUM_SUPPORT, inclusive="both").all()
+    )
+    np.testing.assert_allclose(
+        listings["list_price"] / listings["prelisting_reference_value"] - 1.0,
+        listings["list_price_premium"],
+    )
+    assert not np.allclose(
+        listings["list_price"] / listings["true_exit_value"] - 1.0,
+        listings["list_price_premium"],
+    )
+    assert "truth_demand_shock" not in listings
 
 
 def test_train_and_evaluation_are_independent_shifted_environments() -> None:
@@ -86,7 +120,6 @@ def test_price_treatments_have_known_counterfactual_response() -> None:
             "market_heat": [0.1, 0.1],
             "condition_score": [3, 3],
             "mortgage_rate": [0.06, 0.06],
-            "truth_demand_shock": [0.0, 0.0],
         }
     )
     hazard_probability = true_listing_hazard_probability(listing_frame, period=2, truth=truth)
@@ -118,6 +151,7 @@ def test_survival_panel_preserves_events_and_right_censoring() -> None:
     panel_rows = panel.groupby("listing_id", sort=False).size()
     events = panel.groupby("listing_id", sort=False)["event_in_period"].sum()
     indexed_listings = listings.set_index("listing_id")
+    np.testing.assert_array_equal(listings["days_on_market"], listings["listing_periods"] * 7)
     np.testing.assert_array_equal(
         panel_rows.loc[indexed_listings.index], indexed_listings["listing_periods"]
     )

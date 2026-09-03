@@ -42,8 +42,9 @@ class HomeContext:
     """Information known about a home at the decision timestamp.
 
     ``features`` is deliberately generic.  Downstream model adapters can read
-    whatever as-of property or market features they require; the optimizer only
-    relies on ``reference_value``.
+    whatever as-of property or market features they require. The optimizer uses
+    ``reference_value`` by default and uses ``prelisting_reference_value`` when
+    supplied to define its markdown floor in the same units as a fitted hazard.
     """
 
     home_id: str

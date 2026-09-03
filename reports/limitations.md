@@ -1,129 +1,186 @@
 # Limitations and Risk Register
 
-## Claims boundary
+## Claims ledger
 
-The most important limitation is not model size or sample size. It is the boundary
-between public observation and simulated intervention.
-
-| Claim | Supported? | Why |
+| Statement | Status | Correct interpretation |
 |---|---|---|
-| The code executes a linked acquisition/exit policy | Yes, when release tests pass | Directly inspectable and reproducible |
-| A value model achieves stated out-of-time metrics | Only after a versioned result exists | Empirical predictive claim |
-| A behavioral model recovers simulator-known response | Only inside the documented simulator | Ground truth is generated |
-| A policy improves simulated risk-adjusted contribution | Only against named baselines/environment | Offline simulator result |
-| Phoenix sellers or buyers have the reported elasticity | No | Real treatments and counterfactuals are unobserved |
-| A real company would realize the simulated lift | No | Operations, selection, costs, and behavior differ |
-| Results generalize outside Maricopa County | No | The current scope is intentionally single-market |
+| The code fits a Tampa repeat-sale model and scores 2024-forward Tampa and Orlando sales | Supported by the Florida artifact | Predictive performance for the documented high-turnover repeat-sale samples |
+| Orange outcomes are excluded from fitting and interval calibration | Supported by code | External-market evaluation, not a preregistered untouched holdout |
+| Named Opendoor or Offerpad episodes have the reported holding distribution | Descriptively supported | Recorded deed-to-deed ownership duration, conditional on classifier and linkage rules |
+| An operator coefficient is a causal effect | Not supported | Operator selection, timing, homes, and strategies differ |
+| The controlled models recover known price responses | Supported inside the generated experiment | Implementation evidence, not a Florida elasticity |
+| The worked cases are produced by fitted models | Supported by adapters and tests | Decision behavior under generated covariates and declared assumptions |
+| The project estimates real operator profit or policy lift | Not supported | County records omit key costs, actions, and counterfactuals |
 
-## Risk register
+## Florida data risks
 
-### 1. Temporal leakage
+### Orange qualification proxy
 
-**Failure:** future comparable sales, revised assessor fields, final days on
-market, or post-action demand enter a decision row.
-**Consequence:** implausibly strong prediction and policy results.
-**Controls:** feature-level availability timestamps, as-of joins, explicit
-forbidden columns, chronological tests, and a 120-day maturity buffer.
+The Orange layer's sale description is missing for the retrieved 2022 through
+2024 history. When qualification is unknown, the valuation screen treats a
+warranty deed (`WD`) as a proxy. Warranty-deed form does not establish an
+arm's-length transaction. The Orlando external sample can therefore contain
+transfers that Hillsborough's official qualification flag would exclude.
 
-### 2. Entity leakage
+This is measurement asymmetry between counties. It can affect apparent model
+transport even when the predictive relationship is stable.
 
-**Failure:** repeat observations of the same parcel cross train and test.
-**Consequence:** memorized home effects masquerade as generalization.
-**Controls:** parcel-grouped splits, duplicate-resolution report, and split
-disjointness tests.
+### Narrow repeat-sale population
 
-### 3. Treatment endogeneity
+The valuation study requires a usable prior transaction no more than 4.5 years
+earlier. It therefore overrepresents high-turnover properties and cannot be
+interpreted as coverage of the full housing stock. The prior-deed design helps
+control property quality, but it selects on resale and requires accurate parcel
+linkage. The main sample requires the prior eligible sale to fall in a strictly earlier
+quarter, and the release reports a 30-day minimum-gap sensitivity. Neither rule
+resolves every rapid resale, bundled transfer, or deed-correction ambiguity.
 
-**Failure:** historical markdowns are treated as random even though weak latent
-demand caused them.
-**Consequence:** biased price-response estimates and unsafe recommendations.
-**Controls:** causal-response claims are restricted to logged simulator data with
-controlled exploration; observational price-change regressions are not given a
-causal label.
+The Orange service begins in 2022 in the retrieved snapshot. Even under the same
+4.5-year rule, the observed history and distribution of prior eligible-sale gaps differ
+from Hillsborough. The release reports those gap distributions rather than
+calling the markets identical.
 
-### 4. Selection and censoring
+### Repeat-sale baseline
 
-**Failure:** resale outcomes are learned only from accepted/sold homes, or unsold
-homes are mislabeled.
-**Consequence:** optimistic proceeds and sell-through.
-**Controls:** explicit acceptance selection, right-censored weekly panels,
-separate sale-hazard and proceeds models, and matured outcomes.
+The fair baseline uses the home's own prior eligible price and county median change. It is
+substantially stronger than a pooled or lagged-median benchmark. A fitted model
+that does not improve on this baseline has not demonstrated incremental value,
+even if its raw prediction error appears moderate.
 
-### 5. Simulator overfitting
+### Time and entity leakage
 
-**Failure:** fitted models mirror the generator equation or share evaluation
-seeds/parameters.
-**Consequence:** near-oracle results with no robustness meaning.
-**Controls:** richer nonlinear generator, simpler fitted models, independent
-seeds, hidden evaluation parameters, and shifted stress environments.
+The model uses lagged county medians and chronological Tampa splits. Parcels in
+later Tampa target periods are purged from earlier target periods. This reduces,
+but does not eliminate, leakage risk from revised county records, deed timing,
+same-day transactions, or unobserved administrative corrections.
 
-### 6. Miscalibrated uncertainty
+### Named-operator classification
 
-**Failure:** intervals achieve average coverage but fail for expensive, sparse,
-or shifted homes.
-**Consequence:** risk optimizer treats false precision as opportunity.
-**Controls:** time and segment calibration plots, interval-width reporting,
-conditional diagnostics, abstention, and stress tests.
+The classifier uses narrow anchored patterns for four classic iBuyer brands.
+That favors precision over recall. Uncoded affiliates can be missed, and a
+matching legal-name root can still be misclassified. There is no exhaustive
+corporate-family registry with validity dates in this release.
 
-### 7. Cost-model error
+### Episode linkage
 
-**Failure:** repair, transaction, financing, or holding costs are understated.
-**Consequence:** offers are too high and simulated margins are overstated.
-**Controls:** transparent schedules, uncertainty distributions, reconciliation
-tests, and repair/holding/rate stress scenarios.
+The linker infers ownership from deed-party roles. It does not observe contract
+dates, listing dates, renovations, concessions, affiliate transfers, or
+operational status. Both the acquisition deed and the first later eligible
+operator-as-grantor deed must have at least $10,000 in recorded consideration;
+the resulting linked pair may not always be
+the economically relevant retail exit.
 
-### 8. Objective misspecification
+Spells with a repeated acquisition before exit are excluded from the modeling
+panel because their identity is ambiguous. Spells hitting the 1,095-day
+administrative linkage horizon remain as censored observations because their
+non-exit status is observed throughout the 52-week model horizon. The 52-week
+hazard also treats later observed dispositions as censored at week 52. Results
+depend on these choices. Censored spells observed for fewer than seven days contribute
+no complete risk week and are excluded. The reusable panelizer maps externally
+supplied same-day exits to week one, while the Florida linker requires a
+strictly later exit deed.
 
-**Failure:** the selected CVaR weight or margin/sell-through target does not
-represent the actual operator's preferences.
-**Consequence:** a mathematically optimal policy is operationally wrong.
-**Controls:** report the full frontier, compare risk-neutral and risk-aware
-policies, and avoid presenting one parameter setting as universally optimal.
+### Selection and interpretation
 
-### 9. Distribution shift
+Operator episodes are conditional on a classified firm acquiring the home.
+Completed-only summaries would select again on disposition, so the release uses
+Kaplan-Meier estimates and retains open spells. Still, deed-to-deed duration is
+not days on market, and a deed-price difference is not profit.
 
-**Failure:** mortgage rates, inventory, seasonality, or buyer preferences leave
-training support.
-**Consequence:** valuation, hazard, and policy failure occur together.
-**Controls:** newest-period testing, stress environments, out-of-domain checks,
-calibration monitoring, and higher abstention.
+## Model risks
 
-### 10. Geographic proxy and uneven data quality
+### Geographic shift
 
-**Failure:** geography or property attributes proxy for protected characteristics,
-or sparse areas receive systematically worse estimates.
-**Consequence:** unequal errors or coverage and misleading neighborhood signals.
-**Controls:** no protected-class inputs, coarse location in examples, slice-level
-error/uncertainty/abstention diagnostics, feature review, and no lending or
-consumer-eligibility use.
+Orange is excluded from model fitting and conformal calibration, but the design
+was not preregistered and Orange data were observable during development. The
+external result is a transparent cross-market evaluation, not a pristine trial
+of a specification fixed before anyone saw Orange.
 
-### 11. Operational simplification
+Prediction error and conformal coverage can change because housing composition,
+transaction selection, source measurement, or regimes differ. Two Florida
+counties do not establish statewide or national transport.
 
-**Failure:** The current scope omits renovation queues, listing operations, portfolio capital,
-and market concentration.
-**Consequence:** individual-home policies cannot be interpreted as a portfolio
-operating plan.
-**Controls:** label results as property-level contribution economics and reserve
-portfolio optimization for a later system scope.
+### Conformal coverage
 
-### 12. Metric gaming
+The 90 percent interval uses one maximum residual per Hillsborough calibration
+parcel. Its finite-sample logic relies on exchangeability that may fail over time
+or geography. Marginal coverage does not imply conditional coverage for price
+tiers, neighborhoods, or unusual homes.
 
-**Failure:** a policy appears safe by abstaining almost everywhere, or profitable
-by accepting very few favorable homes.
-**Consequence:** impressive conditional metrics with negligible usefulness.
-**Controls:** always report coverage, acceptance, capital deployed, sell-through,
-and the complete profit-risk frontier alongside conditional profit.
+### Recorded-disposition calibration
 
-## What would be needed for real-world validation?
+The Florida duration model uses only acquisition price, acquisition year,
+acquisition quarter, operator, and week. It omits listing strategy, renovations,
+market conditions, and property quality. A model can rank risk rows while still
+producing poorly calibrated probabilities. Brier skill against the constant
+training hazard must be read alongside AUC and mean predicted versus observed
+hazard.
 
-- Logged quote and acceptance data with defensible exploration or another source
-  of identification.
-- Listing histories with action-time demand signals and reliable censoring.
-- Operationally complete repair, financing, transaction, and holding costs.
-- Prospective shadow-mode evaluation and pre-specified guardrails.
-- Human-review workflow, model-risk ownership, auditability, and rollback.
-- Multi-market and regime-shift validation.
-- Controlled online experimentation before economic-impact claims.
+Operator indicators are associational. They combine selection, geography,
+timing, operational practice, and measurement.
 
-Those requirements are intentionally outside the current scope. They mark the
-boundary between a research prototype and a production decision system.
+## Controlled-experiment risks
+
+### External validity
+
+The controlled generator is location-neutral and independent of the Florida
+records. Randomized price variation identifies the generator's known response,
+not the response of real sellers or buyers. An independently seeded and shifted
+evaluation sample is a useful software test, not external validation in a real
+market.
+
+### Valuation scenarios
+
+The lower conformal endpoint, point estimate, and upper endpoint are assigned
+heuristic scenario weights. Conformal coverage does not identify the probability
+mass at those three values. The resulting decision distribution should be read
+as a stress construction, not a calibrated forecast distribution.
+
+### No belief updating
+
+The dynamic program reuses scenario weights at every state. A no-sale outcome
+does not increase the inferred probability of weak demand or low value, and a
+latent scenario is not preserved along a path. This independent remix can
+understate or misstate serial inventory risk.
+
+### Static-price experimental spells
+
+Each controlled listing receives one randomized list-price premium that remains
+fixed for its generated spell. The fitted common price-response slope is then
+used to score adaptive weekly markdown paths in the decision laboratory. The
+experiment therefore omits price-history, markdown-announcement, and carryover
+effects. It validates the code against a known contemporaneous response, not the
+full behavioral response to a sequence of changing prices.
+
+### Recursive risk objective
+
+The optimizer applies mean profit minus average positive loss in the worst
+decile at each state. Reoptimization makes this a recursive downside rule. It is
+not equivalent to committing at acquisition to one global static mean-CVaR
+objective, and it should not be described as such.
+
+### Cost and terminal assumptions
+
+Repair, acquisition, transaction, weekly holding, negotiation, and terminal
+liquidation parameters are scenarios. They are not estimated from Florida
+operations. Different assumptions can change both the offer and markdown path.
+
+### Missing operational dimensions
+
+The model covers one home. It omits portfolio capital, correlated market risk,
+geographic concentration, inventory capacity, renovation queues, staffing,
+strategic interactions, and learning from incoming demand signals.
+
+## What real validation would require
+
+- Quote-level offers and seller responses with defensible treatment variation.
+- Listing histories with action timestamps, exposure, buyer demand, and proper
+  censoring.
+- Property-level repairs, concessions, financing, taxes, and operating costs.
+- A calibrated joint value and demand-state model with explicit belief updates.
+- Prospective shadow-mode evaluation, prespecified guardrails, and operational
+  baselines.
+- Multi-market and regime-shift evaluation before economic-impact claims.
+
+Until then, Offer-to-Exit is an auditable research prototype, not a production
+pricing system.

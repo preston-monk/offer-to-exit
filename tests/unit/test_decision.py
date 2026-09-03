@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import numpy as np
+import pandas as pd
 import pytest
 
 from offer_to_exit.decision import (
@@ -7,6 +9,8 @@ from offer_to_exit.decision import (
     ConstantElasticitySaleModel,
     CostStructure,
     DynamicPricingOptimizer,
+    FittedHazardSaleOutcomeAdapter,
+    FittedSellerAcceptanceAdapter,
     FixedSpreadOfferPolicy,
     HoldPricePolicy,
     HomeContext,
@@ -19,6 +23,7 @@ from offer_to_exit.decision import (
     SaleScenario,
     ScheduledMarkdownPolicy,
     TargetAcceptanceOfferPolicy,
+    ValueScenarioSpec,
     downside_cvar_loss,
     expected_profit,
     lower_tail_mean,
@@ -58,6 +63,31 @@ class _GridAcceptanceModel:
     def acceptance_probability(self, context: HomeContext, offer: float) -> float:
         del context
         return 0.1 if offer <= 60 else 0.9
+
+
+class _SpyAcceptanceModel:
+    features = ("offer_ratio", "seller_urgency")
+
+    def __init__(self) -> None:
+        self.calls: list[pd.DataFrame] = []
+
+    def predict_proba(self, frame: pd.DataFrame) -> np.ndarray:
+        self.calls.append(frame.copy())
+        return frame["offer_ratio"].to_numpy(dtype=float) / 2
+
+
+class _SpyHazardModel:
+    features = ("list_price_premium", "market_heat")
+    max_periods = 17
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[pd.DataFrame, int]] = []
+
+    def predict_hazard(self, frame: pd.DataFrame, *, horizon: int | None = None) -> np.ndarray:
+        assert horizon is not None
+        self.calls.append((frame.copy(), horizon))
+        base = np.clip(0.25 - 0.5 * frame["list_price_premium"].to_numpy(), 0.01, 0.99)
+        return np.repeat(base[:, None], horizon, axis=1)
 
 
 def test_price_actions_and_cost_structure() -> None:
@@ -199,6 +229,61 @@ def test_reference_models_are_monotone_and_scenario_aware() -> None:
     assert affordable.sale_price <= 90
 
 
+def test_fitted_adapters_invoke_prediction_methods_and_rewrite_only_price_treatments() -> None:
+    acceptance_model = _SpyAcceptanceModel()
+    acceptance_features = pd.DataFrame({"offer_ratio": [0.50], "seller_urgency": [0.25]})
+    acceptance = FittedSellerAcceptanceAdapter(
+        acceptance_model,
+        acceptance_features,
+        offer_ratio_support=(0.82, 1.02),
+    )
+    context = HomeContext(
+        "LAB-SPY-001",
+        100,
+        features={
+            "preoffer_reference_value": 120,
+            "prelisting_reference_value": 100,
+        },
+    )
+
+    assert acceptance.acceptance_probability(context, 108) == pytest.approx(0.45)
+    assert len(acceptance_model.calls) == 1
+    assert acceptance_model.calls[0].loc[0, "offer_ratio"] == pytest.approx(0.90)
+    assert acceptance_model.calls[0].loc[0, "seller_urgency"] == pytest.approx(0.25)
+    assert acceptance_features.loc[0, "offer_ratio"] == pytest.approx(0.50)
+
+    with pytest.raises(KeyError, match="observable offer reference"):
+        acceptance.acceptance_probability(HomeContext("missing-reference", 100), 90)
+    with pytest.raises(ValueError, match="outside fitted support"):
+        acceptance.acceptance_probability(context, 80)
+
+    hazard_model = _SpyHazardModel()
+    hazard_features = pd.DataFrame({"list_price_premium": [0.0], "market_heat": [0.1]})
+    outcome = FittedHazardSaleOutcomeAdapter(
+        hazard_model,
+        hazard_features,
+        (
+            ValueScenarioSpec("downside", 0.2, 90),
+            ValueScenarioSpec("base", 0.6, 100),
+            ValueScenarioSpec("upside", 0.2, 120),
+        ),
+        list_price_premium_support=(-0.30, 0.15),
+    )
+    scenarios = outcome.sale_scenarios(context, PricingState(3, 110))
+
+    assert len(hazard_model.calls) == 1
+    scored_frame, horizon = hazard_model.calls[0]
+    assert horizon == 17
+    assert scored_frame["list_price_premium"].to_numpy() == pytest.approx([0.10])
+    assert scored_frame["market_heat"].eq(0.1).all()
+    assert [scenario.sale_price for scenario in scenarios] == pytest.approx([90, 100, 109.45])
+    assert outcome.scored_price_premiums == pytest.approx((0.10,))
+    assert outcome.sale_scenarios(context, PricingState(3, 110)) == scenarios
+    assert len(hazard_model.calls) == 1
+    with pytest.raises(ValueError, match="outside fitted support"):
+        outcome.sale_scenarios(context, PricingState(3, 116))
+
+
 def test_weighted_tail_risk_and_compression_preserve_economics() -> None:
     outcomes = (
         ProfitOutcome(0.05, -100),
@@ -221,7 +306,9 @@ def test_three_worked_cases_run_through_the_same_interfaces() -> None:
     assert {result.case.name for result in results} == {
         "healthy-demand-margin-protection",
         "stale-inventory-high-carry",
-        "thin-comps-downside-protection",
+        "sparse-support-downside-protection",
     }
     assert all(result.selected_offer in result.case.offer_grid for result in results)
     assert all(result.result.selected.exit_result.no_sale_path() for result in results)
+    assert all(result.case.pricing_config.horizon_weeks == 17 for result in results)
+    assert all(result.case.context.home_id.startswith("LAB-") for result in results)

@@ -5,6 +5,9 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
+from offer_to_exit.simulation import LIST_PRICE_PREMIUM_SUPPORT, OFFER_RATIO_SUPPORT
 from offer_to_exit.workflow import CLAIM_SCOPE, render_demo, run_experiment
 
 
@@ -13,14 +16,14 @@ def _config(output_dir: Path) -> dict[str, object]:
         "schema_version": 1,
         "run": {
             "name": "integration-quickstart",
-            "mode": "semi_synthetic",
+            "mode": "controlled_experiment",
             "seed": 2_026_090_1,
             "output_dir": str(output_dir),
             "overwrite": True,
         },
         "market": {
-            "name": "Phoenix-shaped generated fixture",
-            "exit_horizon_weeks": 12,
+            "name": "Location-neutral generated fixture",
+            "exit_horizon_weeks": 17,
         },
         "data": {
             "source_mode": "generated_fixture",
@@ -42,13 +45,63 @@ def test_quickstart_is_reproducible_and_publishes_a_static_demo(tmp_path: Path) 
     first = run_experiment(config, config_path=tmp_path / "quickstart.yaml")
 
     json.dumps(first, allow_nan=False)
-    assert first["mode"] == "semi_synthetic"
+    assert first["mode"] == "controlled_experiment"
     assert first["claim_scope"] == CLAIM_SCOPE
     assert first["reproducibility"]["independent_evaluation_environment"] is True
+    assert first["reproducibility"]["decision_cases_use_fitted_models"] is True
+    assert first["reproducibility"]["decision_case_truth_excluded"] is True
+    assert first["reproducibility"]["acquisition_offer_reference_observable"] is True
+    assert first["reproducibility"]["list_price_reference_observable"] is True
+    assert first["reproducibility"]["behavioral_treatment_support_enforced"] is True
+    assert first["reproducibility"]["hazard_truth_matches_fitted_estimand"] is True
     assert first["metrics"]["evaluation_contract"]["used_for_fitting"] is False
     assert first["data"]["n_train_homes"] == 300
     assert first["data"]["n_evaluation_homes"] == 200
+    assert first["data"]["acquisition_offer_ratio_support"] == list(OFFER_RATIO_SUPPORT)
+    assert first["data"]["list_price_premium_support"] == list(LIST_PRICE_PREMIUM_SUPPORT)
     assert len(first["decision_cases"]) == 3
+    assert all(case["home_id"].startswith("LAB-") for case in first["decision_cases"])
+    assert all(
+        case["model_source"].startswith("fitted contemporaneous value anchor")
+        for case in first["decision_cases"]
+    )
+    assert all(case["path_length_weeks"] == 17 for case in first["decision_cases"])
+    assert all(
+        case["valuation_interval_lower"]
+        <= case["reference_value"]
+        <= case["valuation_interval_upper"]
+        for case in first["decision_cases"]
+    )
+    thin_case = next(
+        case
+        for case in first["decision_cases"]
+        if case["name"] == "sparse-support-downside-protection"
+    )
+    initial_sale_proceeds_cap = 0.995 * thin_case["initial_list_price"]
+    assert thin_case["valuation_interval_lower"] < initial_sale_proceeds_cap
+    assert initial_sale_proceeds_cap < thin_case["reference_value"]
+    assert all(case["preoffer_reference_value"] > 0 for case in first["decision_cases"])
+    assert all(
+        case["acceptance_offer_ratio"]
+        == pytest.approx(case["selected_offer"] / case["preoffer_reference_value"], abs=1e-6)
+        for case in first["decision_cases"]
+    )
+    support_lower, support_upper = OFFER_RATIO_SUPPORT
+    assert all(
+        support_lower <= ratio <= support_upper
+        for case in first["decision_cases"]
+        for ratio in case["evaluated_acceptance_offer_ratios"]
+    )
+    list_support_lower, list_support_upper = LIST_PRICE_PREMIUM_SUPPORT
+    assert all(
+        list_support_lower <= case["initial_list_price_premium"] <= list_support_upper
+        and list_support_lower
+        <= case["scored_list_price_premium_min"]
+        <= case["scored_list_price_premium_max"]
+        <= list_support_upper
+        and case["scored_list_price_premium_count"] > 0
+        for case in first["decision_cases"]
+    )
     assert {case["first_action"] for case in first["decision_cases"]} >= {
         "hold",
         "cut_5_pct",
@@ -79,7 +132,7 @@ def test_quickstart_is_reproducible_and_publishes_a_static_demo(tmp_path: Path) 
     with cases_path.open(encoding="utf-8", newline="") as handle:
         assert len(list(csv.DictReader(handle))) == 3
     demo = demo_path.read_text(encoding="utf-8")
-    assert "SEMI-SYNTHETIC" in demo
+    assert "CONTROLLED EXPERIMENT" in demo
     assert "data:image/png;base64," in demo
     assert "no external assets or scripts" in demo
 

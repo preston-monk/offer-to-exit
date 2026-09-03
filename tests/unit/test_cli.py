@@ -5,10 +5,12 @@ import sys
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 
+import pandas as pd
 from typer.testing import CliRunner
 
 from offer_to_exit import cli
 from offer_to_exit.data.catalog import DataSource
+from offer_to_exit.data.florida import FloridaPreparationSummary
 
 runner = CliRunner()
 
@@ -53,7 +55,13 @@ def test_fetch_command_uses_requested_and_default_sources(
     monkeypatch: object, tmp_path: Path
 ) -> None:
     monkeypatch.setattr(  # type: ignore[attr-defined]
-        cli, "SOURCES", {"one": _source("one"), "two": _source("two")}
+        cli,
+        "SOURCES",
+        {
+            "hillsborough_sales": _source("hillsborough_sales"),
+            "orange_sales": _source("orange_sales"),
+            "legacy": _source("legacy"),
+        },
     )
     calls: list[tuple[str, Path, bool]] = []
 
@@ -67,53 +75,91 @@ def test_fetch_command_uses_requested_and_default_sources(
         [
             "fetch",
             "--source",
-            "two",
+            "orange_sales",
             "--raw-dir",
             str(tmp_path),
             "--overwrite",
         ],
     )
     assert requested.exit_code == 0
-    assert calls == [("two", tmp_path, True)]
+    assert calls == [("orange_sales", tmp_path, True)]
     assert "1,234 bytes" in requested.stdout
     assert "aaaaaaaaaaaa…" in requested.stdout
 
     calls.clear()
     defaulted = runner.invoke(cli.app, ["fetch", "--raw-dir", str(tmp_path)])
     assert defaulted.exit_code == 0
-    assert [call[0] for call in calls] == ["one", "two"]
+    assert [call[0] for call in calls] == ["hillsborough_sales", "orange_sales"]
 
 
-def test_prepare_command_covers_full_and_market_only_paths(
+def test_prepare_command_builds_combined_transactions_episodes_and_manifest(
     monkeypatch: object, tmp_path: Path
 ) -> None:
     raw_dir = tmp_path / "raw"
     processed_dir = tmp_path / "processed"
-    sanitizers: list[tuple[str, Path, Path]] = []
+    raw_dir.mkdir()
+    sources = {
+        "hillsborough_sales": _source("hillsborough_sales"),
+        "orange_sales": _source("orange_sales"),
+    }
+    monkeypatch.setattr(cli, "SOURCES", sources)  # type: ignore[attr-defined]
+    for source in sources.values():
+        (raw_dir / source.filename).write_bytes(b"fixture")
 
-    def fake_residential(source: Path, destination: Path) -> str:
-        sanitizers.append(("residential", source, destination))
-        return "residential-summary"
+    calls: list[tuple[str, Path, Path]] = []
 
-    def fake_sales(source: Path, destination: Path) -> str:
-        sanitizers.append(("sales", source, destination))
-        return "sales-summary"
+    def write_fixture(
+        market: str,
+        output: Path,
+        rows: list[dict[str, object]],
+    ) -> FloridaPreparationSummary:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        frame = pd.DataFrame(rows)
+        frame.to_csv(output, index=False)
+        return FloridaPreparationSummary(
+            market=market,
+            input_file="fixture",
+            output_file=str(output),
+            input_rows=len(frame),
+            output_rows=len(frame),
+            columns=tuple(frame.columns),
+            created_at="2026-09-03T00:00:00+00:00",
+        )
 
-    def fake_market(source: Path, destination: Path) -> list[Path]:
-        assert source == raw_dir
-        assert destination == processed_dir
-        return [destination / "market-a.csv", destination / "market-b.csv"]
+    def fake_hillsborough(source: Path, destination: Path) -> FloridaPreparationSummary:
+        calls.append(("hillsborough", source, destination))
+        return write_fixture(
+            "tampa_hillsborough",
+            destination,
+            [
+                _florida_transaction(
+                    "tampa-home", "tampa_hillsborough", "2023-01-01", 300_000, buyer="opendoor"
+                ),
+                _florida_transaction(
+                    "tampa-home", "tampa_hillsborough", "2023-05-01", 340_000, seller="opendoor"
+                ),
+            ],
+        )
 
-    manifests: list[tuple[Path, list[object], list[Path]]] = []
+    def fake_orange(source: Path, destination: Path) -> FloridaPreparationSummary:
+        calls.append(("orange", source, destination))
+        return write_fixture(
+            "orlando_orange",
+            destination,
+            [
+                _florida_transaction(
+                    "orlando-home", "orlando_orange", "2023-02-01", 250_000, buyer="offerpad"
+                ),
+                _florida_transaction(
+                    "orlando-home", "orlando_orange", "2023-06-01", 280_000, seller="offerpad"
+                ),
+            ],
+        )
 
-    def fake_manifest(destination: Path, summaries: list[object], market_files: list[Path]) -> Path:
-        manifests.append((destination, list(summaries), list(market_files)))
-        return destination / "manifest.json"
-
-    monkeypatch.setattr(cli, "sanitize_residential", fake_residential)  # type: ignore[attr-defined]
-    monkeypatch.setattr(cli, "sanitize_sales", fake_sales)  # type: ignore[attr-defined]
-    monkeypatch.setattr(cli, "prepare_market_series", fake_market)  # type: ignore[attr-defined]
-    monkeypatch.setattr(cli, "write_preparation_manifest", fake_manifest)  # type: ignore[attr-defined]
+    monkeypatch.setattr(  # type: ignore[attr-defined]
+        cli, "sanitize_hillsborough_archive", fake_hillsborough
+    )
+    monkeypatch.setattr(cli, "sanitize_orange_jsonl", fake_orange)  # type: ignore[attr-defined]
 
     full = runner.invoke(
         cli.app,
@@ -123,29 +169,74 @@ def test_prepare_command_covers_full_and_market_only_paths(
             str(raw_dir),
             "--processed-dir",
             str(processed_dir),
+            "--as-of",
+            "2024-01-01",
+            "--maximum-hold-days",
+            "730",
         ],
     )
     assert full.exit_code == 0
-    assert "Prepared 4 tables" in full.stdout
-    assert [call[0] for call in sanitizers] == ["residential", "sales"]
-    assert manifests[-1][1] == ["residential-summary", "sales-summary"]
-
-    sanitizers.clear()
-    market_only = runner.invoke(
-        cli.app,
-        [
-            "prepare",
-            "--raw-dir",
-            str(raw_dir),
-            "--processed-dir",
-            str(processed_dir),
-            "--market-only",
-        ],
+    assert "Prepared 4 privacy-safe transactions and 2 named-iBuyer episodes" in full.stdout
+    assert [call[0] for call in calls] == ["hillsborough", "orange"]
+    combined = pd.read_csv(processed_dir / "florida_transactions_safe.csv.gz")
+    episodes = pd.read_csv(
+        processed_dir / "named_ibuyer_episodes_safe.csv.gz", dtype={"dor_code": "string"}
     )
-    assert market_only.exit_code == 0
-    assert "Prepared 2 tables" in market_only.stdout
-    assert sanitizers == []
-    assert manifests[-1][1] == []
+    assert len(combined) == 4
+    assert set(episodes["operator"]) == {"opendoor", "offerpad"}
+    assert set(episodes["dor_code"]) == {"0100"}
+    manifest = json.loads((processed_dir / "preparation_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["privacy"]["party_names_retained"] is False
+    assert len(manifest["tables"]) == 2
+    assert manifest["analysis"]["episode_observation_end_by_market"] == {
+        "orlando_orange": "2024-01-01",
+        "tampa_hillsborough": "2024-01-01",
+    }
+    assert manifest["analysis"]["maximum_episode_linkage_days"] == 730
+
+
+def test_prepare_command_rejects_unknown_markets_and_reports_missing_inputs(
+    monkeypatch: object, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(  # type: ignore[attr-defined]
+        cli,
+        "SOURCES",
+        {
+            "hillsborough_sales": _source("hillsborough_sales"),
+            "orange_sales": _source("orange_sales"),
+        },
+    )
+    unknown = runner.invoke(cli.app, ["prepare", "--market", "miami"])
+    assert unknown.exit_code == 2
+    assert "Unknown market(s): miami" in unknown.stderr
+
+    missing = runner.invoke(cli.app, ["prepare", "--raw-dir", str(tmp_path)])
+    assert missing.exit_code == 2
+    assert "Missing raw input(s)" in missing.stderr
+    assert "fetch` first" in missing.stderr
+
+
+def _florida_transaction(
+    parcel_id: str,
+    market: str,
+    sale_date: str,
+    sale_price: float,
+    *,
+    buyer: str | None = None,
+    seller: str | None = None,
+) -> dict[str, object]:
+    return {
+        "parcel_id": parcel_id,
+        "market": market,
+        "sale_date": sale_date,
+        "sale_price": sale_price,
+        "property_type_code": "0100",
+        "dor_code": "0100",
+        "qualified": True,
+        "improved": True,
+        "buyer_operator": buyer,
+        "seller_operator": seller,
+    }
 
 
 def test_run_and_demo_commands_delegate_to_workflow(monkeypatch: object, tmp_path: Path) -> None:
@@ -156,9 +247,17 @@ def test_run_and_demo_commands_delegate_to_workflow(monkeypatch: object, tmp_pat
 
     fake_workflow = ModuleType("offer_to_exit.workflow")
 
+    generated_demo = tmp_path / "generated" / "demo.html"
+
     def fake_run(payload: object, *, config_path: Path) -> dict[str, object]:
         calls.append(("run", payload, config_path))
-        return {"status": "ok", "seed": 7}
+        generated_demo.parent.mkdir(parents=True, exist_ok=True)
+        generated_demo.write_text("<html>generated</html>", encoding="utf-8")
+        return {
+            "status": "ok",
+            "seed": 7,
+            "artifacts": {"demo": str(generated_demo)},
+        }
 
     def fake_render(result: object, destination: Path) -> None:
         calls.append(("render", result, destination))
@@ -170,7 +269,11 @@ def test_run_and_demo_commands_delegate_to_workflow(monkeypatch: object, tmp_pat
 
     run_result = runner.invoke(cli.app, ["run", "--config", str(config)])
     assert run_result.exit_code == 0
-    assert json.loads(run_result.stdout) == {"status": "ok", "seed": 7}
+    assert json.loads(run_result.stdout) == {
+        "status": "ok",
+        "seed": 7,
+        "artifacts": {"demo": str(generated_demo)},
+    }
 
     demo_result = runner.invoke(
         cli.app,
@@ -180,3 +283,9 @@ def test_run_and_demo_commands_delegate_to_workflow(monkeypatch: object, tmp_pat
     assert f"Wrote {output}" in demo_result.stdout
     assert output.read_text(encoding="utf-8") == "<html>demo</html>"
     assert [call[0] for call in calls] == ["run", "run", "render"]
+
+    calls.clear()
+    default_demo = runner.invoke(cli.app, ["demo", "--config", str(config)])
+    assert default_demo.exit_code == 0
+    assert f"Wrote {generated_demo}" in default_demo.stdout
+    assert [call[0] for call in calls] == ["run"]

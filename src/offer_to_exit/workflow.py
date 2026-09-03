@@ -1,4 +1,4 @@
-"""Deterministic end-to-end workflow for the semi-synthetic release.
+"""Deterministic end-to-end workflow for the controlled policy experiment.
 
 The workflow is deliberately small enough to reproduce locally. It generates two
 independent environments, fits three transparent models, evaluates them under a
@@ -20,17 +20,28 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
 from offer_to_exit import __version__
-from offer_to_exit.decision import solve_worked_decision_cases
+from offer_to_exit.decision import (
+    FittedHazardSaleOutcomeAdapter,
+    FittedSellerAcceptanceAdapter,
+    HomeContext,
+    ValueScenarioSpec,
+    WorkedCaseModels,
+    model_driven_worked_decision_cases,
+    solve_worked_decision_cases,
+)
 from offer_to_exit.models import (
     CalibratedLinearValuation,
     DiscreteTimeHazardModel,
     SellerAcceptanceModel,
 )
 from offer_to_exit.simulation import (
+    LIST_PRICE_PREMIUM_SUPPORT,
+    OFFER_RATIO_SUPPORT,
     CausalParameters,
     EnvironmentConfig,
     SimulatedEnvironment,
@@ -42,11 +53,11 @@ from offer_to_exit.simulation import (
 plt.switch_backend("Agg")
 
 
-ARTIFACT_SCHEMA_VERSION = 1
-ARTIFACT_VERSION = "v1"
+ARTIFACT_SCHEMA_VERSION = 2
+ARTIFACT_VERSION = "v2"
 CLAIM_SCOPE = (
     "All behavioral responses, counterfactuals, policy economics, and model metrics "
-    "in this run are semi-synthetic results—not estimates of any real operator, "
+    "in this run come from a controlled generated experiment; they are not estimates of any real operator, "
     "homeowner population, or housing market."
 )
 
@@ -74,6 +85,7 @@ HAZARD_NUMERIC_FEATURES = (
     "mortgage_rate",
 )
 _CATEGORICAL_FEATURES = ("submarket",)
+DECISION_HORIZON_WEEKS = 17
 
 
 def run_experiment(
@@ -81,7 +93,7 @@ def run_experiment(
     *,
     config_path: Path | None = None,
 ) -> dict[str, Any]:
-    """Run the configured semi-synthetic experiment and publish its artifacts.
+    """Run the configured controlled experiment and publish its artifacts.
 
     The signature intentionally matches :mod:`offer_to_exit.cli`: the CLI passes an
     already-parsed YAML mapping and the path used to obtain it. The returned mapping
@@ -93,14 +105,11 @@ def run_experiment(
     simulator_config = _section(config, "simulator")
     market_config = _section(config, "market")
 
-    mode = str(run_config.get("mode", "semi_synthetic"))
-    if mode not in {"semi_synthetic", "semi-synthetic"}:
-        raise ValueError("the public workflow supports semi_synthetic mode only")
-    if str(data_config.get("source_mode", "generated_fixture")) not in {
-        "generated_fixture",
-        "semi_synthetic",
-    }:
-        raise ValueError("the public workflow accepts generated/semi-synthetic data only")
+    mode = str(run_config.get("mode", "controlled_experiment"))
+    if mode not in {"controlled_experiment", "controlled-experiment"}:
+        raise ValueError("the public workflow supports controlled_experiment mode only")
+    if str(data_config.get("source_mode", "generated_fixture")) != "generated_fixture":
+        raise ValueError("the public workflow accepts generated fixtures only")
 
     run_name = str(run_config.get("name", "quickstart"))
     run_seed = int(run_config.get("seed", 2_026_090_1))
@@ -120,7 +129,7 @@ def run_experiment(
     )
     models = _fit_models(simulation)
     metrics, plot_data = _evaluate_models(simulation, models)
-    decision_cases = _solve_decision_cases()
+    decision_cases = _solve_decision_cases(simulation, models)
 
     _write_figures(plot_data, artifact_paths["figures"])
 
@@ -142,7 +151,7 @@ def run_experiment(
         "package_version": __version__,
         "run_id": run_id,
         "run_name": run_name,
-        "mode": "semi_synthetic",
+        "mode": "controlled_experiment",
         "claim_scope": CLAIM_SCOPE,
         "market_shape": str(market_config.get("name", "unspecified synthetic market")),
         "reproducibility": {
@@ -153,15 +162,25 @@ def run_experiment(
             "config_path": str(config_path) if config_path is not None else None,
             "independent_evaluation_environment": True,
             "evaluation_truth_excluded_from_model_fitting": True,
+            "decision_cases_use_fitted_models": True,
+            "decision_case_truth_excluded": True,
+            "acquisition_offer_reference_observable": True,
+            "list_price_reference_observable": True,
+            "behavioral_treatment_support_enforced": True,
+            "hazard_truth_matches_fitted_estimand": True,
+            "valuation_scenario_weights_are_heuristic": True,
+            "weekly_stress_scenarios_are_remixed": True,
         },
         "data": {
-            "source": "generated semi-synthetic fixture",
+            "source": "controlled generated fixture",
             "n_train_homes": len(simulation.train.homes),
             "n_evaluation_homes": len(simulation.evaluation.homes),
             "n_train_listings": len(simulation.train.listings),
             "n_evaluation_listings": len(simulation.evaluation.listings),
             "listing_period_days": 7,
             "max_listing_periods": simulation.train.config.max_listing_periods,
+            "acquisition_offer_ratio_support": list(OFFER_RATIO_SUPPORT),
+            "list_price_premium_support": list(LIST_PRICE_PREMIUM_SUPPORT),
         },
         "metrics": metrics,
         "decision_cases": decision_cases,
@@ -172,7 +191,7 @@ def run_experiment(
         "schema_version": ARTIFACT_SCHEMA_VERSION,
         "run_id": run_id,
         "claim_scope": CLAIM_SCOPE,
-        "evaluation_environment": "independent shifted semi-synthetic holdout",
+        "evaluation_environment": "independent shifted generated evaluation environment",
         "metrics": metrics,
     }
     _write_json(artifact_paths["metrics"], metrics_payload)
@@ -201,7 +220,7 @@ def run_experiment(
         "artifact_version": ARTIFACT_VERSION,
         "package_version": __version__,
         "run_id": run_id,
-        "mode": "semi_synthetic",
+        "mode": "controlled_experiment",
         "claim_scope": CLAIM_SCOPE,
         "config_sha256": config_sha256,
         "training_seed": simulation.train.config.seed,
@@ -234,7 +253,7 @@ def render_demo(result: Mapping[str, Any], output: Path) -> Path:
         else []
     )
     figure_titles = (
-        "Valuation on shifted evaluation homes",
+        "Contemporaneous value anchor on shifted evaluation homes",
         "Seller response: fitted versus simulator truth",
         "List-price response and cumulative sell-through",
     )
@@ -242,7 +261,7 @@ def render_demo(result: Mapping[str, Any], output: Path) -> Path:
         f"""
         <figure class="figure-card">
           <img src="{_image_data_uri(path)}" alt="{html.escape(title)}">
-          <figcaption>{html.escape(title)} · semi-synthetic holdout</figcaption>
+          <figcaption>{html.escape(title)} · controlled evaluation environment</figcaption>
         </figure>
         """
         for path, title in zip(figure_paths, figure_titles, strict=False)
@@ -251,15 +270,14 @@ def render_demo(result: Mapping[str, Any], output: Path) -> Path:
 
     case_cards = "".join(_case_html(case) for case in decision_cases if isinstance(case, Mapping))
     claim_scope = html.escape(str(result.get("claim_scope", CLAIM_SCOPE)))
-    run_id = html.escape(str(result.get("run_id", "semi-synthetic-run")))
-    market_shape = html.escape(str(result.get("market_shape", "synthetic market")))
+    run_id = html.escape(str(result.get("run_id", "controlled-experiment-run")))
     document = f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>Offer-to-Exit · Semi-Synthetic Decision Lab</title>
+  <title>Offer-to-Exit · Controlled Decision Lab</title>
   <style>
     :root {{
       --ink: #14232b; --muted: #5d6d74; --paper: #f5f2eb; --card: #fffdf8;
@@ -337,9 +355,9 @@ def render_demo(result: Mapping[str, Any], output: Path) -> Path:
       <div class="eyebrow">Residential pricing decision system</div>
       <h1>Offer to exit,<br>as one decision.</h1>
       <p class="lede">A transparent laboratory connecting valuation uncertainty, seller conversion,
-      buyer price response, inventory risk, and the acquisition offer. Shaped like {market_shape};
-      built entirely from generated behavior.</p>
-      <span class="badge">SEMI-SYNTHETIC · AUDITABLE · REPRODUCIBLE</span>
+      buyer price response, inventory risk, and the acquisition offer. This evidence layer is
+      location-neutral and built entirely from generated behavior.</p>
+      <span class="badge">CONTROLLED EXPERIMENT · AUDITABLE · REPRODUCIBLE</span>
     </div>
     <aside class="provenance">
       <div><h2>Locked run</h2><dl>
@@ -348,7 +366,7 @@ def render_demo(result: Mapping[str, Any], output: Path) -> Path:
         <div><dt>Evaluation seed</dt><dd>{html.escape(str(reproducibility.get("evaluation_seed", "—")))}</dd></div>
         <div><dt>Evaluation homes</dt><dd>{_integer(data.get("n_evaluation_homes", 0))}</dd></div>
       </dl></div>
-      <small>Evaluation is drawn independently and shifted after model fitting.</small>
+      <small>Evaluation is independently generated, distribution-shifted, and excluded from model fitting.</small>
     </aside>
   </div>
 
@@ -356,7 +374,7 @@ def render_demo(result: Mapping[str, Any], output: Path) -> Path:
     <div class="section-head"><h2>Evidence, before optimization</h2>
       <p>Predictive quality and behavioral recovery are measured only on the independent evaluation environment.</p></div>
     <div class="metrics">
-      {_metric_card(_money(valuation.get("median_absolute_error", 0)), "Valuation median absolute error", "Lower is better")}
+      {_metric_card(_money(valuation.get("median_absolute_error", 0)), "Home-value anchor median absolute error", "Lower is better")}
       {_metric_card(_percent(valuation.get("interval_coverage", 0)), "90% interval coverage", "Split conformal")}
       {_metric_card(_decimal(acceptance.get("brier_score", 0), 3), "Seller-acceptance Brier", "Versus pooled-rate baseline")}
       {_metric_card(_decimal(hazard.get("person_period_log_loss", 0), 3), "Sale-hazard log loss", "Right censoring retained")}
@@ -409,7 +427,7 @@ def _build_simulation(
         n_evaluation = 80
 
     horizon_weeks = int(market_config.get("exit_horizon_weeks", 17))
-    max_periods = max(4, horizon_weeks)
+    max_periods = max(DECISION_HORIZON_WEEKS, horizon_weeks)
     training_seed = int(simulator_config.get("training_seed", fallback_seed))
     evaluation_seed = int(simulator_config.get("evaluation_seed", fallback_seed + 1))
     if training_seed == evaluation_seed:
@@ -587,7 +605,7 @@ def _evaluate_models(
 
     metrics = {
         "evaluation_contract": {
-            "environment": "independent shifted semi-synthetic holdout",
+            "environment": "independent shifted generated evaluation environment",
             "used_for_fitting": False,
             "right_censoring_preserved": True,
             "behavioral_truth_used_for_scoring_only": True,
@@ -607,9 +625,18 @@ def _evaluate_models(
     return metrics, plot_data
 
 
-def _solve_decision_cases() -> list[dict[str, Any]]:
+def _solve_decision_cases(
+    simulation: TrainEvaluationSimulation,
+    models: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    model_inputs = _decision_case_model_inputs(simulation, models)
+    fitted_cases = model_driven_worked_decision_cases(
+        model_inputs,
+        offer_ratio_support=OFFER_RATIO_SUPPORT,
+        list_price_premium_support=LIST_PRICE_PREMIUM_SUPPORT,
+    )
     cases: list[dict[str, Any]] = []
-    for solved in solve_worked_decision_cases():
+    for solved in solve_worked_decision_cases(fitted_cases):
         selected = solved.result.selected
         path = selected.exit_result.no_sale_path()
         recommendation = "price" if selected.objective_value > 0 else "abstain"
@@ -618,33 +645,69 @@ def _solve_decision_cases() -> list[dict[str, Any]]:
             if recommendation == "price"
             else "every supported offer has non-positive risk-adjusted value"
         )
-        loss_probability = sum(
+        approximate_loss_probability = sum(
             outcome.probability for outcome in selected.outcomes if outcome.profit < 0
         )
+        preoffer_reference_value = float(solved.case.context.features["preoffer_reference_value"])
+        prelisting_reference_value = float(
+            solved.case.context.features["prelisting_reference_value"]
+        )
+        if not isinstance(solved.case.outcome_model, FittedHazardSaleOutcomeAdapter):
+            raise TypeError("controlled decision case must use the fitted hazard adapter")
+        scored_price_premiums = solved.case.outcome_model.scored_price_premiums
+        if not scored_price_premiums:
+            raise ValueError("fitted hazard adapter did not score any list-price states")
         cases.append(
             {
                 "name": solved.case.name,
                 "question": solved.case.question,
                 "home_id": solved.case.context.home_id,
                 "reference_value": _rounded(solved.case.context.reference_value, 2),
+                "preoffer_reference_value": _rounded(preoffer_reference_value, 2),
+                "prelisting_reference_value": _rounded(prelisting_reference_value, 2),
+                "valuation_interval_lower": _rounded(
+                    solved.case.context.features["valuation_interval_lower"], 2
+                ),
+                "valuation_interval_upper": _rounded(
+                    solved.case.context.features["valuation_interval_upper"], 2
+                ),
                 "initial_list_price": _rounded(solved.case.initial_list_price, 2),
+                "initial_list_price_premium": _rounded(
+                    solved.case.initial_list_price / prelisting_reference_value - 1.0,
+                    6,
+                ),
                 "recommendation": recommendation,
                 "recommendation_reason": recommendation_reason,
                 "selected_offer": _rounded(selected.offer, 2),
                 "automated_offer": (
                     _rounded(selected.offer, 2) if recommendation == "price" else None
                 ),
-                "selected_offer_ratio": _rounded(
+                "selected_offer_to_value_anchor_ratio": _rounded(
                     selected.offer / solved.case.context.reference_value, 6
                 ),
+                "acceptance_offer_ratio": _rounded(
+                    selected.offer / preoffer_reference_value,
+                    6,
+                ),
+                "evaluated_acceptance_offer_ratios": [
+                    _rounded(offer / preoffer_reference_value, 6)
+                    for offer in solved.case.offer_grid
+                ],
+                "scored_list_price_premium_min": _rounded(min(scored_price_premiums), 6),
+                "scored_list_price_premium_max": _rounded(max(scored_price_premiums), 6),
+                "scored_list_price_premium_count": len(scored_price_premiums),
                 "acceptance_probability": _rounded(selected.acceptance_probability, 6),
                 "first_action": solved.first_action.value,
                 "first_post_action_list_price": _rounded(
                     selected.exit_result.first_decision.new_list_price, 2
                 ),
+                "path_length_weeks": len(path),
                 "expected_profit_per_lead": _rounded(selected.expected_profit_per_lead, 2),
-                "downside_cvar_loss": _rounded(selected.downside_cvar_loss, 2),
-                "loss_probability": _rounded(loss_probability, 6),
+                "worst_tail_positive_loss": _rounded(selected.downside_cvar_loss, 2),
+                "loss_probability": _rounded(approximate_loss_probability, 6),
+                "loss_probability_note": (
+                    "approximate negative-profit mass after outcome-grid compression"
+                ),
                 "risk_adjusted_objective": _rounded(selected.objective_value, 2),
                 "no_sale_path": [
                     {
@@ -655,10 +718,240 @@ def _solve_decision_cases() -> list[dict[str, Any]]:
                     }
                     for decision in path
                 ],
-                "evidence_scope": "worked semi-synthetic scenario; not real-market performance",
+                "model_source": (
+                    "fitted contemporaneous value anchor, seller-acceptance model, and "
+                    "sale-hazard model from the controlled experiment"
+                ),
+                "evidence_scope": (
+                    "illustrative controlled-experiment decision; not real-market performance"
+                ),
             }
         )
     return cases
+
+
+def _decision_case_model_inputs(
+    simulation: TrainEvaluationSimulation,
+    models: Mapping[str, Any],
+) -> dict[str, WorkedCaseModels]:
+    """Create three observable-feature cases scored by the fitted models.
+
+    Representative rows come from the independent evaluation environment.
+    Selection uses observed covariates and fitted valuation outputs. The
+    feature frames passed to adapters are projected onto each model's declared
+    features, excluding all simulator truth and realized-outcome columns by
+    construction.
+    """
+
+    valuation: CalibratedLinearValuation = models["valuation"]
+    acceptance: SellerAcceptanceModel = models["acceptance"]
+    hazard: DiscreteTimeHazardModel = models["hazard"]
+    offers = simulation.evaluation.offers
+    valuation_rows = offers.loc[:, valuation.features]
+    all_value_predictions = valuation.predict(valuation_rows)
+    all_value_intervals = valuation.predict_interval(valuation_rows)
+    positions = _representative_case_positions(
+        simulation,
+        value_predictions=all_value_predictions,
+        value_intervals=all_value_intervals,
+    )
+    profiles = tuple(positions)
+    selected_rows = offers.loc[[positions[profile] for profile in profiles]].copy()
+    selected_offsets = [offers.index.get_loc(positions[profile]) for profile in profiles]
+    value_prediction = all_value_predictions[selected_offsets]
+    value_interval = all_value_intervals[selected_offsets]
+
+    scenario_design = {
+        "healthy-demand-margin-protection": (
+            ("soft", 0.20),
+            ("base", 0.60),
+            ("strong", 0.20),
+        ),
+        "stale-inventory-high-carry": (
+            ("soft", 0.35),
+            ("base", 0.50),
+            ("rebound", 0.15),
+        ),
+        "sparse-support-downside-protection": (
+            ("downside", 0.30),
+            ("base", 0.50),
+            ("upside", 0.20),
+        ),
+    }
+    home_ids = {
+        "healthy-demand-margin-protection": "LAB-HEALTHY-001",
+        "stale-inventory-high-carry": "LAB-STALE-002",
+        "sparse-support-downside-protection": "LAB-SPARSE-SUPPORT-003",
+    }
+
+    result: dict[str, WorkedCaseModels] = {}
+    for row_number, profile in enumerate(profiles):
+        row = selected_rows.iloc[row_number]
+        reference_value = float(value_prediction[row_number])
+        preoffer_reference_value = float(row["preoffer_reference_value"])
+        prelisting_reference_value = float(row["prelisting_reference_value"])
+        lower = min(float(value_interval[row_number, 0]), reference_value)
+        upper = max(float(value_interval[row_number, 1]), reference_value)
+        if (
+            lower <= 0
+            or not np.isfinite(
+                [
+                    lower,
+                    reference_value,
+                    upper,
+                    preoffer_reference_value,
+                    prelisting_reference_value,
+                ]
+            ).all()
+        ):
+            raise ValueError("valuation model returned invalid decision stress points")
+        if preoffer_reference_value <= 0:
+            raise ValueError("observable pre-offer reference must be positive")
+        if prelisting_reference_value <= 0:
+            raise ValueError("observable pre-listing reference must be positive")
+        scenario_values = (lower, reference_value, upper)
+        value_scenarios = tuple(
+            ValueScenarioSpec(name=name, probability=weight, resale_value=value)
+            for (name, weight), value in zip(scenario_design[profile], scenario_values, strict=True)
+        )
+
+        acceptance_row = _project_model_features(row, acceptance.features)
+        hazard_row = _project_model_features(
+            row,
+            hazard.features,
+            replacements={"list_price_premium": 0.0},
+        )
+        context = HomeContext(
+            home_id=home_ids[profile],
+            reference_value=reference_value,
+            features={
+                "market_heat": float(row["market_heat"]),
+                "condition_score": float(row["condition_score"]),
+                "mortgage_rate": float(row["mortgage_rate"]),
+                "seller_urgency": float(row["seller_urgency"]),
+                "repair_cost_fraction": float(row["repair_cost_fraction"]),
+                "preoffer_reference_value": preoffer_reference_value,
+                "prelisting_reference_value": prelisting_reference_value,
+                "valuation_interval_lower": lower,
+                "valuation_interval_upper": upper,
+            },
+        )
+        result[profile] = WorkedCaseModels(
+            context=context,
+            acceptance_model=FittedSellerAcceptanceAdapter(
+                acceptance,
+                acceptance_row,
+                offer_ratio_support=OFFER_RATIO_SUPPORT,
+            ),
+            outcome_model=FittedHazardSaleOutcomeAdapter(
+                hazard,
+                hazard_row,
+                value_scenarios,
+                list_price_premium_support=LIST_PRICE_PREMIUM_SUPPORT,
+            ),
+        )
+    return result
+
+
+def _representative_case_positions(
+    simulation: TrainEvaluationSimulation,
+    *,
+    value_predictions: np.ndarray,
+    value_intervals: np.ndarray,
+) -> dict[str, int]:
+    """Select healthy, stale, and consequential-uncertainty evaluation profiles.
+
+    Selection uses only observed covariates and fitted valuation outputs.  For
+    the sparse-support profile, the lower fitted stress point must bind sale
+    proceeds at the initial supported list price while the point prediction
+    does not.  That makes the valuation interval economically consequential in
+    the worked decision rather than a label attached to an otherwise identical
+    set of proceeds.
+    """
+
+    evaluation = simulation.evaluation.offers
+    required = {
+        "market_heat",
+        "condition_score",
+        "mortgage_rate",
+        "square_feet",
+        "submarket",
+    }
+    missing = required.difference(evaluation.columns)
+    if missing:
+        raise KeyError(f"evaluation features are missing: {sorted(missing)}")
+    if len(evaluation) < 3:
+        raise ValueError("at least three evaluation homes are required for worked cases")
+    if len(value_predictions) != len(evaluation) or value_intervals.shape != (len(evaluation), 2):
+        raise ValueError("valuation outputs must align one-for-one with evaluation homes")
+
+    heat = _standardized(evaluation["market_heat"])
+    condition = _standardized(evaluation["condition_score"])
+    mortgage = _standardized(evaluation["mortgage_rate"])
+    healthy_score = heat + 0.25 * condition - 0.25 * mortgage
+    healthy_position = int(healthy_score.idxmax())
+
+    stale_score = -heat - 0.20 * condition + 0.35 * mortgage
+    stale_score = stale_score.drop(index=healthy_position)
+    stale_position = int(stale_score.idxmax())
+
+    support_counts = simulation.train.homes["submarket"].value_counts()
+    training_support = evaluation["submarket"].map(support_counts).fillna(0).astype(float)
+    size_distance = np.abs(_standardized(np.log(evaluation["square_feet"])))
+    prediction = pd.Series(value_predictions, index=evaluation.index, dtype=float)
+    lower = pd.Series(value_intervals[:, 0], index=evaluation.index, dtype=float)
+    upper = pd.Series(value_intervals[:, 1], index=evaluation.index, dtype=float)
+    initial_price = 1.04 * evaluation["prelisting_reference_value"].astype(float)
+    initial_proceeds_cap = 0.995 * initial_price
+    interval_width_rate = (upper - lower) / prediction
+    sparse_score = (
+        -np.log1p(training_support)
+        + 0.35 * size_distance
+        + 0.50 * _standardized(interval_width_rate)
+    )
+    sparse_score = sparse_score.drop(index=[healthy_position, stale_position])
+    consequential = (lower < initial_proceeds_cap) & (initial_proceeds_cap < prediction)
+    sparse_score = sparse_score.loc[consequential.reindex(sparse_score.index, fill_value=False)]
+    if sparse_score.empty:
+        raise ValueError(
+            "no independent-evaluation row makes fitted valuation uncertainty "
+            "consequential at the sparse-support initial list price"
+        )
+    sparse_position = int(sparse_score.idxmax())
+    return {
+        "healthy-demand-margin-protection": healthy_position,
+        "stale-inventory-high-carry": stale_position,
+        "sparse-support-downside-protection": sparse_position,
+    }
+
+
+def _project_model_features(
+    row: pd.Series,
+    features: Sequence[str],
+    *,
+    replacements: Mapping[str, float] | None = None,
+) -> pd.DataFrame:
+    replacement_values = replacements or {}
+    values: dict[str, Any] = {}
+    for feature in features:
+        if feature in replacement_values:
+            values[feature] = replacement_values[feature]
+        elif feature in row.index:
+            values[feature] = row[feature]
+        else:
+            raise KeyError(f"representative row is missing model feature {feature!r}")
+    forbidden = [name for name in values if name.startswith(("true_", "truth_"))]
+    if forbidden:
+        raise ValueError(f"truth features cannot enter a decision adapter: {forbidden}")
+    return pd.DataFrame([values], columns=list(features))
+
+
+def _standardized(values: pd.Series) -> pd.Series:
+    numeric = pd.to_numeric(values, errors="raise").astype(float)
+    scale = float(numeric.std(ddof=0))
+    if scale == 0:
+        return pd.Series(np.zeros(len(numeric)), index=numeric.index)
+    return (numeric - float(numeric.mean())) / scale
 
 
 def _write_figures(plot_data: Mapping[str, Any], paths: Sequence[Path]) -> None:
@@ -691,18 +984,20 @@ def _write_figures(plot_data: Mapping[str, Any], paths: Sequence[Path]) -> None:
     )
     axis.plot([lower / 1_000, upper / 1_000], [lower / 1_000, upper / 1_000], "--", color="#db694d")
     axis.set(
-        title="Valuation on an independent shifted environment",
+        title="Contemporaneous value anchor on a shifted environment",
         xlabel="Observed generated price ($000s)",
         ylabel="Predicted price ($000s)",
     )
-    axis.text(0.02, 0.98, "Semi-synthetic", transform=axis.transAxes, va="top", color="#5d6d74")
+    axis.text(
+        0.02, 0.98, "Controlled experiment", transform=axis.transAxes, va="top", color="#5d6d74"
+    )
     _save_figure(figure, paths[0])
 
     evaluation: SimulatedEnvironment = plot_data["evaluation"]
     acceptance_model: SellerAcceptanceModel = plot_data["acceptance_model"]
     truth: CausalParameters = plot_data["truth"]
     acceptance_sample = evaluation.offers.iloc[: min(300, len(evaluation.offers))].copy()
-    ratios = np.linspace(0.82, 1.02, 31)
+    ratios = np.linspace(*OFFER_RATIO_SUPPORT, 31)
     fitted_curve: list[float] = []
     truth_curve: list[float] = []
     for ratio in ratios:
@@ -722,7 +1017,7 @@ def _write_figures(plot_data: Mapping[str, Any], paths: Sequence[Path]) -> None:
     )
     axis.set(
         title="Seller acceptance response",
-        xlabel="Offer / generated market value",
+        xlabel="Offer / observable pre-offer reference",
         ylabel="Acceptance probability",
         ylim=(0, 1),
     )
@@ -734,9 +1029,9 @@ def _write_figures(plot_data: Mapping[str, Any], paths: Sequence[Path]) -> None:
     periods = np.arange(1, hazard_model.max_periods + 1)
     figure, axis = plt.subplots(figsize=(5.2, 4.0), constrained_layout=True)
     for premium, label, color in (
-        (-0.02, "2% below value", "#087e78"),
-        (0.05, "5% above value", "#d99a3b"),
-        (0.12, "12% above value", "#db694d"),
+        (-0.02, "2% below reference", "#087e78"),
+        (0.05, "5% above reference", "#d99a3b"),
+        (0.12, "12% above reference", "#db694d"),
     ):
         counterfactual = hazard_probe.copy()
         counterfactual["list_price_premium"] = premium
@@ -770,17 +1065,24 @@ def _write_decision_csv(path: Path, cases: Sequence[Mapping[str, Any]]) -> None:
         "question",
         "home_id",
         "reference_value",
+        "preoffer_reference_value",
+        "prelisting_reference_value",
         "initial_list_price",
+        "initial_list_price_premium",
         "recommendation",
         "recommendation_reason",
         "selected_offer",
         "automated_offer",
-        "selected_offer_ratio",
+        "selected_offer_to_value_anchor_ratio",
+        "acceptance_offer_ratio",
+        "scored_list_price_premium_min",
+        "scored_list_price_premium_max",
+        "scored_list_price_premium_count",
         "acceptance_probability",
         "first_action",
         "first_post_action_list_price",
         "expected_profit_per_lead",
-        "downside_cvar_loss",
+        "worst_tail_positive_loss",
         "loss_probability",
         "risk_adjusted_objective",
         "evidence_scope",
@@ -913,7 +1215,7 @@ def _case_html(case: Mapping[str, Any]) -> str:
         <div class="case-stat"><b>{_money(case.get("selected_offer", 0))}</b><span>{offer_label}</span></div>
         <div class="case-stat"><b>{_percent(case.get("acceptance_probability", 0))}</b><span>acceptance probability</span></div>
         <div class="case-stat"><b>{_money(case.get("expected_profit_per_lead", 0))}</b><span>expected profit / lead</span></div>
-        <div class="case-stat"><b>{_percent(case.get("loss_probability", 0))}</b><span>loss probability</span></div>
+        <div class="case-stat"><b>{_percent(case.get("loss_probability", 0))}</b><span>approx. loss probability</span></div>
       </div>
       <div class="path"><strong>Decision gate:</strong> {html.escape(str(case.get("recommendation_reason", "")))}</div>
       <div class="path"><strong>No-sale path:</strong> {html.escape(path_text)}</div>

@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "offer-to-exit"
-version = "0.1.0"
-description = "A risk-aware housing acquisition and resale pricing laboratory."
+version = "0.2.0"
+description = "A two-market housing acquisition and resale pricing laboratory."
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
 license = { file = "LICENSE" }
@@ -17,6 +17,8 @@ keywords = [
   "pricing",
   "decision-science",
   "uncertainty-quantification",
+  "survival-analysis",
+  "florida-real-estate",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",

@@ -1,9 +1,11 @@
-"""Deterministic semi-synthetic data for decision-science experiments.
+"""Deterministic generated data for controlled decision-science experiments.
 
 The generator deliberately makes the two price treatments random:
 
-* ``offer_ratio`` changes seller acceptance with a known log-odds effect.
-* ``list_price_premium`` changes the sale hazard with a known log-odds effect.
+* ``offer_ratio`` is randomized relative to an observable pre-offer value
+  reference and changes seller acceptance with a known log-odds effect.
+* ``list_price_premium`` is randomized relative to an observable pre-listing
+  value reference and changes the sale hazard with a known log-odds effect.
 
 Everything in this module is synthetic. The values are useful for testing causal,
 predictive, and decision code; they are not estimates of any real operator or market.
@@ -17,6 +19,8 @@ import numpy as np
 import pandas as pd
 
 _SUBMARKETS = ("zone_a", "zone_b", "zone_c", "zone_d", "zone_e", "zone_f")
+OFFER_RATIO_SUPPORT = (0.82, 1.02)
+LIST_PRICE_PREMIUM_SUPPORT = (-0.30, 0.15)
 _SUBMARKET_LOG_VALUE = {
     "zone_a": -0.16,
     "zone_b": -0.08,
@@ -58,7 +62,6 @@ class CausalParameters:
     hazard_market_heat: float = 0.70
     hazard_condition: float = 0.12
     hazard_mortgage_rate: float = -8.0
-    hazard_latent_demand: float = 0.35
 
     exit_price_list_premium: float = 0.18
 
@@ -180,11 +183,6 @@ def true_listing_hazard_probability(
     if np.any(period_array < 1):
         raise ValueError("period values must be positive")
 
-    latent_demand = (
-        frame["truth_demand_shock"].to_numpy()
-        if "truth_demand_shock" in frame
-        else np.zeros(len(frame))
-    )
     linear_predictor = (
         parameters.hazard_intercept
         + parameters.hazard_log_period * np.log(period_array)
@@ -192,7 +190,6 @@ def true_listing_hazard_probability(
         + parameters.hazard_market_heat * frame["market_heat"].to_numpy()
         + parameters.hazard_condition * (frame["condition_score"].to_numpy() - 3.0)
         + parameters.hazard_mortgage_rate * (frame["mortgage_rate"].to_numpy() - 0.06)
-        + parameters.hazard_latent_demand * latent_demand
     )
     return _sigmoid(linear_predictor)
 
@@ -236,7 +233,7 @@ def simulate_environment(
     config: EnvironmentConfig,
     truth: CausalParameters | None = None,
 ) -> SimulatedEnvironment:
-    """Generate one deterministic, entirely semi-synthetic environment."""
+    """Generate one deterministic, entirely controlled environment."""
 
     parameters = truth or CausalParameters()
     rng = np.random.default_rng(config.seed)
@@ -271,7 +268,7 @@ def simulate_environment(
     annual_appreciation = rng.normal(config.annual_appreciation_mean, 0.022, n_homes)
     submarket_effect = np.array([_SUBMARKET_LOG_VALUE[value] for value in submarket])
     stable_home_noise = rng.normal(0.0, 0.075, n_homes)
-    log_market_value = (
+    observable_log_value = (
         13.02
         + config.log_value_shift
         + 0.50 * np.log(square_feet / 1_800)
@@ -284,10 +281,20 @@ def simulate_environment(
         + submarket_effect
         + 0.060 * market_heat
         - 1.50 * (mortgage_rate - 0.06)
-        + stable_home_noise
     )
+    log_market_value = observable_log_value + stable_home_noise
     true_market_value = np.exp(log_market_value)
     observed_sale_price = true_market_value * np.exp(rng.normal(0.0, 0.045, n_homes))
+    # This appraisal-like signal is available before an offer is assigned. It is
+    # generated from observed property and market characteristics plus independent
+    # measurement noise, so neither the offer nor its denominator reads latent value.
+    preoffer_reference_value = np.exp(observable_log_value + rng.normal(0.0, 0.060, n_homes))
+    # A second observable signal represents information available when the
+    # acquired home is ready to list. It incorporates observed appreciation and
+    # new measurement noise, but not latent exit value.
+    prelisting_reference_value = preoffer_reference_value * np.exp(
+        0.50 * annual_appreciation + rng.normal(0.0, 0.035, n_homes)
+    )
 
     home_ids = [f"{config.name}_home_{index:06d}" for index in range(n_homes)]
     homes = pd.DataFrame(
@@ -305,6 +312,8 @@ def simulate_environment(
             "market_heat": market_heat,
             "mortgage_rate": mortgage_rate,
             "annual_appreciation": annual_appreciation,
+            "preoffer_reference_value": preoffer_reference_value,
+            "prelisting_reference_value": prelisting_reference_value,
             "observed_sale_price": observed_sale_price,
             "true_market_value": true_market_value,
         }
@@ -312,9 +321,10 @@ def simulate_environment(
 
     offers = homes.copy()
     offers["offer_id"] = [f"{config.name}_offer_{index:06d}" for index in range(n_homes)]
-    # Randomized independently of home and market features by construction.
-    offers["offer_ratio"] = rng.uniform(0.82, 1.02, n_homes)
-    offers["offer_price"] = offers["true_market_value"] * offers["offer_ratio"]
+    # The ratio is randomized independently of home and market features. The
+    # resulting offer uses only the observable reference available before treatment.
+    offers["offer_ratio"] = rng.uniform(*OFFER_RATIO_SUPPORT, n_homes)
+    offers["offer_price"] = offers["preoffer_reference_value"] * offers["offer_ratio"]
     offers["seller_urgency"] = rng.normal(0.0, 1.0, n_homes)
     offers["repair_cost_fraction"] = np.clip(rng.beta(2.0, 12.0, n_homes) * 0.30, 0.0, 0.18)
     offers["true_acceptance_probability"] = true_acceptance_probability(offers, parameters)
@@ -329,10 +339,10 @@ def simulate_environment(
         0.50 * listings["annual_appreciation"].to_numpy() + rng.normal(0.0, 0.025, n_listings)
     )
     # This randomized treatment is the known causal price response in the exit model.
-    listings["list_price_premium"] = rng.uniform(-0.04, 0.14, n_listings)
-    listings["list_price"] = listings["true_exit_value"] * (1.0 + listings["list_price_premium"])
-    listings["truth_demand_shock"] = rng.normal(0.0, 1.0, n_listings)
-
+    listings["list_price_premium"] = rng.uniform(*LIST_PRICE_PREMIUM_SUPPORT, n_listings)
+    listings["list_price"] = listings["prelisting_reference_value"] * (
+        1.0 + listings["list_price_premium"]
+    )
     max_periods = config.max_listing_periods
     period_grid = np.arange(1, max_periods + 1)
     hazard = np.column_stack(
@@ -355,7 +365,7 @@ def simulate_environment(
     listings["listing_periods"] = observed_periods.astype(int)
     listings["event_observed"] = event_observed.astype(int)
     listings["censored"] = (~event_observed).astype(int)
-    listings["days_on_market"] = listings["listing_periods"] * 14
+    listings["days_on_market"] = listings["listing_periods"] * 7
     listings["true_hazard_period_1"] = hazard[:, 0]
     sale_noise = rng.normal(0.0, 0.020, n_listings)
     realized_exit_price = listings["true_exit_value"].to_numpy() * np.exp(

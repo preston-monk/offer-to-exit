@@ -1,0 +1,59 @@
+{
+  "artifact_sha256": {
+    "florida_evidence.html": "927bc79307c3a1fd51d4c77746d9fe8c2605e907c61854f2852a9378a009e9b6",
+    "florida_inventory_duration.v2.png": "4ac56af57d14dcb0431d7b23a819b7f2baafafe8ddef487f7d06d63aede43118",
+    "florida_metrics.v2.json": "2e7451aec10eddd5a6ae63258c0725b551024fb6f9dee1d6cf08ce8a4d9d057d",
+    "florida_operator_effects.v2.csv": "76ac4be36f8c3d1d9879ced99da5f1fb6027194bb41995db2dd7499c5614ee7c",
+    "florida_operator_summary.v2.csv": "ada7281cecf61156c77cc713316c18aaf294ab3914cc125d07f4ec7cac696514",
+    "florida_valuation_transport.v2.png": "2b9b07dd77972e4d5432185dd4b4aa099b70f26559758ab00c12978454b2c256"
+  },
+  "package_version": "0.2.0",
+  "provenance": {
+    "analysis": {
+      "duration_calibration_start": "2021-01-01",
+      "duration_test_start": "2022-01-01",
+      "episode_observation_end_by_market": {
+        "orlando_orange": "2026-08-31",
+        "tampa_hillsborough": "2026-08-21"
+      },
+      "max_duration_weeks": 52,
+      "maximum_episode_linkage_days": 1095,
+      "maximum_years_since_prior_sale": 4.5,
+      "minimum_sale_date": "2010-01-01",
+      "random_state": 20260903,
+      "seasoning_sensitivity_minimum_prior_gap_days": 30,
+      "valuation_calibration_start": "2022-01-01",
+      "valuation_test_start": "2024-01-01"
+    },
+    "source_snapshot": {
+      "hillsborough_sales": {
+        "bytes": 71166154,
+        "landing_page": "https://downloads.hcpafl.org/",
+        "publisher": "Hillsborough County Property Appraiser",
+        "retrieved_at": "2026-09-03T16:28:03.584328+00:00",
+        "sha256": "d5f4e7f090676a133c0cb0bd7852074807c8c61c3681a911105ad9c9c8221d2e",
+        "title": "Hillsborough County All Sales",
+        "transport": "aspnet_postback",
+        "url": "https://downloads.hcpafl.org/"
+      },
+      "orange_sales": {
+        "bytes": 17382366,
+        "landing_page": "https://vgispublic.ocpafl.org/server/rest/services/Webmap/SALES/MapServer/5",
+        "publisher": "Orange County Property Appraiser",
+        "records": 206568,
+        "retrieved_at": "2026-09-03T16:41:28.583140+00:00",
+        "sha256": "8357c92e34ebe6bc3f1bd3983e4c4852888d908f6b8c3a9326262b25e4030269",
+        "title": "Orange County All Sales",
+        "transport": "arcgis",
+        "url": "https://vgispublic.ocpafl.org/server/rest/services/Webmap/SALES/MapServer/5/query"
+      }
+    }
+  },
+  "release_version": "v2",
+  "run_id": "florida-2026-09-03-schema-2",
+  "schema_version": 2,
+  "source": {
+    "episodes_sha256": "f6c81c6978d22898c71841701776c4f5ed01813f0654740c0edd588ce8f60b8a",
+    "transactions_sha256": "b892d88fd9444f0f4faf4ff8524eff5301b1513aaa2c8e4e525014d3f1725ddb"
+  }
+}

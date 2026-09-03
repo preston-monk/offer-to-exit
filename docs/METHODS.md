@@ -1,153 +1,291 @@
 # Methods
 
-## 1. Decision sequence
+## 1. Economic sequence
 
-The system respects the order in which information becomes available.
+The model follows the order in which a housing intermediary receives
+information and acts:
 
 ```text
-quote -> acquisition offer -> seller response -> acquisition -> repair -> list
-      -> weekly resale-price decisions -> sale or censoring at week 17
+home information -> acquisition offer -> seller response -> ownership
+-> weekly resale prices -> recorded sale or terminal liquidation
 ```
 
-At quote time, the state contains only property and market facts available before
-the offer. After acquisition, the weekly state adds the current list price,
-remaining horizon, accumulated costs, and prior-week demand. Same-week demand is
-never used to choose the price that generated it.
-
-The output vocabulary is deliberately operational:
-
-- **recommend an offer** when a supported action clears the economic and risk
-  constraints;
-- **request human review** when data validity or model support may be resolvable;
-  and
-- **decline to price** when no supported offer has positive risk-adjusted value.
-
-## 2. Linked acquisition and resale economics
-
-Let $q(a)$ denote the probability that a seller accepts acquisition offer
-$a$. Let $J_0^*(a)$ denote the optimized continuation value of resale after
-the home is acquired. The acquisition problem is
+Let $q(a\mid x)$ be the probability that a seller accepts acquisition offer
+$a$. After acceptance, let $s_t$ denote the state at the start of resale week
+$t$ and $p_t$ the price after the weekly action. Aggregate buyer demand is a
+discrete-time sale hazard:
 
 ```math
-a^*=\arg\max_{a\in\mathcal A}
-q(a)J_0^*(a)-\text{downside penalty},
+h_t(p_t\mid s_t)
+=
+\Pr(\text{sale in week }t\mid\text{unsold at }t,p_t,s_t).
 ```
 
-subject to margin, sell-through, loss, and support constraints. Continuation
-value is the expected risk-adjusted contribution from the best feasible resale
-path, conditional on owning the home. This is the link that prevents the offer
-model from treating liquidity, carrying cost, and markdown flexibility as an
-afterthought.
-
-For weekly resale state $s_t$ and price action $u_t$, backward recursion uses
+Let contribution profit when the home sells in week $t$ at realized transaction
+price $P_t$ be
 
 ```math
-Q_t(s_t,u_t)=
-h_t(s_t,u_t)\,\mathbb{E}[\text{net proceeds}\mid\text{sale}]
-+(1-h_t(s_t,u_t))\left[-H_t+V_{t+1}(s_{t+1})\right],
+G_t(a,P_t)
+=
+P_t-a-R-K-C(P_t)-(w_0+t+1)H,
 ```
+
+where $R$ is repair cost, $K$ is acquisition cost, $C(P_t)$ is resale
+transaction cost, $w_0$ is pre-listing holding time, and $H$ is weekly holding
+cost. The risk-neutral recursion is
 
 ```math
-V_t(s_t)=\max_{u_t\in\mathcal U(s_t)}Q_t(s_t,u_t).
+\begin{aligned}
+V_t(s_t)=\max_{p_t\in\mathcal P(s_t)}\Big\{&
+h_t(p_t\mid s_t)\,
+\mathbb E[G_t(a,P_t)\mid\text{sale}]\\
+&+[1-h_t(p_t\mid s_t)]V_{t+1}(s_{t+1})
+\Big\}.
+\end{aligned}
 ```
 
-Here $h_t$ is the probability of selling during week $t$, conditional on
-remaining unsold. The feasible actions are hold, cut 1%, cut 2.5%, and cut 5%.
-The optimizer carries an explicit terminal value at the 17-week horizon.
+The current week's holding cost is embedded in every realized sale or terminal
+liquidation payoff through $G_t$. If the home remains unsold, the later payoff
+contains more cumulative holding weeks. Writing a separate $-H$ on the no-sale
+branch would therefore double count holding cost relative to the implementation.
 
-## 3. Released model components
+Offer-to-Exit propagates a compressed discrete approximation to the profit
+distribution and replaces the expected-value criterion with the recursive
+downside objective described below.
 
-### Resale valuation
+## 2. Florida repeat-sale valuation
 
-The baseline is the pooled median observed sale price in the training
-environment. The fitted model is a log-linear hedonic regression over structure,
-age, condition, quality, lot size, coarse submarket, and market state. A
-split-conformal calibration step produces a marginal 90% prediction interval.
+### Population
 
-The interval does not solve uncertainty. Marginal coverage can conceal
-conditional miscalibration, and a distribution shift weakens exchangeability.
-The interval is still decision-relevant because equal point estimates with very
-different uncertainty should not automatically support equal offers.
+The estimator uses improved single-family repeat sales with an observed prior
+sale no more than 4.5 years earlier. Sale prices must lie between $25,000 and $10
+million. Hillsborough requires the county-qualified flag. Orange uses its sale
+description where populated and uses a warranty-deed code as a proxy when the
+historical description is missing.
 
-### Seller acceptance
+The prior eligible sale must occur in a strictly earlier calendar quarter than the
+target sale. The prior-quarter normalization is therefore fully observed before
+the target quarter. The release also reruns the complete design after requiring
+at least 30 days between deeds.
 
-The baseline is the pooled acceptance rate. The fitted model is a regularized
-logistic response using offer-to-value ratio, a simulated pre-offer seller-timing
-signal, market heat, repair-cost fraction, and coarse submarket. The timing signal
-represents information collected before an offer is chosen; latent reservation
-value is not exposed to the fitted model.
+This is a high-turnover repeat-sale estimand, not an automated valuation model
+for every home. The prior eligible sale provides a property-specific proxy for persistent
+quality that cannot be measured symmetrically in the two county sources;
+renovations and other unobserved changes may still remain.
 
-Offer ratios are deliberately varied over a bounded range in the simulator. This
-creates treatment support and makes the known log-odds response recoverable.
-That response has a causal interpretation only inside the simulator.
+### Estimator
 
-### Weekly sale hazard
+For current price $P_i$, prior price $P_i^-$, the county median $M_i^-$ in the
+prior eligible sale's quarter, and the lagged county median $M_{q-1}$ before the current
+sale, the model predicts
 
-The baseline is the observed sale rate by listing period without price. The
-fitted discrete-time logistic hazard uses list-price premium, weeks on market,
-market heat, property condition, mortgage rate, and coarse submarket. Homes that
-remain unsold at week 17 are retained as right-censored observations.
+```math
+\log(P_i/M_{q-1})
+```
 
-A regression on completed days on market would discard censored listings and
-condition on future information. A price-aware hazard instead matches the weekly
-decision and distinguishes the probability of selling from proceeds conditional
-on sale.
+with three inputs:
 
-### Conditional proceeds and costs
+```math
+\log(P_i^-/M_i^-),
+\qquad
+\text{years since prior sale},
+\qquad
+\text{calendar quarter}.
+```
 
-The current release does not fit a proceeds model. The worked decisions use
-explicit downside, base, and upside proceeds scenarios with transparent repair,
-closing, financing, and holding-cost distributions. This keeps an unmeasured
-component visible rather than presenting an unsupported fitted result.
+The estimator is a `HistGradientBoostingRegressor` with learning rate 0.06, 180
+iterations, at most 31 leaves, and L2 regularization 1.0. Numeric missing values
+are median-imputed. No Orange outcome or Orange structural attribute enters
+fitting.
 
-## 4. Why structured models and dynamic programming?
+The fair benchmark is
 
-Behavioral response enters an optimizer, so monotonicity, support, and
-extrapolation matter more than a small average gain from an opaque model. The
-regularized response models are intentionally simpler than the simulator that
-generated their training data.
+```math
+\widehat P_i^{\mathrm{base}}
+=
+P_i^-\frac{M_{q-1}}{M_i^-},
+```
 
-The resale horizon and action grid are also small. Backward recursion is
-reproducible, auditable, and compatible with hard action constraints. A
-reinforcement-learning layer would add off-policy evaluation and stability
-problems without addressing a current requirement.
+which rolls the home's own prior eligible price forward with the same county market
+movement available to the fitted model.
 
-## 5. Evaluation design
+### Time and geography
 
-The released experiment creates 720 training homes and 480 evaluation homes with
-different seeds. The evaluation environment is intentionally harder:
+Hillsborough sales before 2022 form the proper training period. Sales in 2022
+and 2023 form the interval-calibration period. Sales from 2024 onward form the
+Tampa out-of-time test. Parcels assigned to a later period are purged from
+earlier target samples.
 
-| Quantity | Training mean or setting | Evaluation mean or setting |
-|---|---:|---:|
-| Market heat | `0.20` | `-0.18` |
-| Mortgage rate | `5.5%` | `6.9%` |
-| Annual appreciation | `3.0%` | `-0.5%` |
-| Log value | Reference | `+0.035` shift |
-| Log square footage | Reference | `+0.045` shift |
-| Submarket mix | Training distribution | Reweighted toward zones D–F |
+A 90 percent split-conformal interval is calibrated on absolute normalized-log
+residuals. To avoid transaction-weighting a parcel, each calibration parcel
+contributes one conservative score: its maximum residual. The same fitted model
+and interval radius are applied to Orange sales from 2024 onward. Orange is
+excluded from fitting and calibration, but this is not presented as a
+preregistered untouched holdout.
 
-This is one independently seeded covariate-shifted holdout. It supports an
-initial shift check, not a confidence interval over environments.
+Metrics give each parcel equal total weight and report transaction and parcel
+counts, MAE, RMSE, median absolute error, mean and median percentage error, mean
+error, weighted $R^2$, interval coverage, and median interval width.
 
-Evaluation is layered:
+## 3. Florida recorded-disposition model
 
-1. **Prediction:** value error, interval coverage and width, Brier score, and
-   right-censored hazard log loss.
-2. **Response recovery:** fitted offer and resale-price log-odds effects against
-   known simulator truth, plus monotonicity.
-3. **Decision diagnostics:** three separately constructed worked cases exposing
-   offer, acceptance, resale path, expected contribution, loss probability, and
-   abstention behavior.
-4. **Engineering controls:** deterministic artifacts, temporal contracts,
-   optimizer invariants, API validation, cost reconciliation, and privacy gates.
+Named iBuyer episodes begin with a classified operator acquisition and end with
+the first later deed where the same operator is grantor. Both deeds must report
+at least $10,000 in consideration. The screen excludes nominal or
+administrative transfers that do not reveal interpretable purchase or resale
+prices. Completed, open
+right-censored, and administrative-horizon spells enter the modeling panel;
+repeat-acquisition-before-exit flags do not. Administrative-horizon spells have
+at least 1,095 observed non-exit days and are therefore fully observed through
+the 52-week model horizon.
 
-The worked decisions are not sampled policy outcomes for the 480-home holdout.
-They are diagnostic scenarios designed to make decision behavior traceable.
+Observed linked exits use the ceiling of deed-to-deed days divided by seven.
+Censored spells contribute only complete
+observed weeks, so a censored spell with fewer than seven days of follow-up does
+not enter the weekly risk panel.
 
-## 6. Claim boundary
+The study uses improved single-family acquisitions from 2016 onward and keeps
+operators with at least 25 episodes in both counties. The current supported set
+is Opendoor and Offerpad. Qualification is not required for this title-duration
+estimand.
 
-The release supports claims about reproducibility, temporal controls, fitted
-performance on the documented generated holdout, recovery of known simulated
-responses, and the behavior of three diagnostic decisions. It does not support
-real-market elasticity, real economic lift, repeated-policy superiority,
-cross-market transportability, or production readiness.
+For episode $i$, the model expands one row per week at risk and estimates
+
+```math
+\Pr(D_{it}=1\mid D_{i1}=\cdots=D_{i,t-1}=0,X_i,t)
+```
+
+with a penalized logistic regression. Inputs are log acquisition price,
+acquisition year, acquisition quarter, operator indicators, and week indicators.
+No resale price, realized duration, gross spread, or Florida list price is a
+predictor.
+
+Fitting maximizes the ordinary person-period likelihood: every week in which a
+home remains at risk contributes one Bernoulli observation. This is the
+discrete-time hazard likelihood, so weights do not depend on the subsequently
+realized duration or censoring time.
+
+The model fits Tampa episodes acquired before January 2022. Follow-up for every
+training spell is administratively censored at January 1, 2022, so a future
+disposition cannot leak across the test boundary. The common future evaluation
+window contains Tampa and Orlando acquisitions from January 2022 onward. The
+risk window is capped at 52 weeks; a later disposition is treated as censored at
+that horizon. Metrics report person-period Brier score against a constant
+training hazard, Brier skill, log loss, observed and predicted hazard, and
+risk-row AUC.
+
+Kaplan-Meier summaries by market and operator preserve open spells with at
+least one complete week of observed follow-up. The outcome
+is deed-to-deed title duration, not listing duration. Operator coefficients are
+regularized associations, not causal effects.
+
+## 4. Location-neutral controlled experiment
+
+County deeds reveal only chosen transactions. They cannot identify the response
+to offers sellers did not receive or list prices the operator did not post. A
+separate generated experiment therefore constructs appraisal-like pre-offer and
+pre-listing value references from observable property and market characteristics
+plus independent measurement noise, then randomizes:
+
+- acquisition offer divided by that observable pre-offer reference over a
+  bounded range; and
+- list-price premium relative to the observable pre-listing reference.
+
+Training and evaluation environments use independent seeds. The evaluation
+environment shifts home values, square footage, market heat, mortgage rates,
+appreciation, and synthetic submarket shares. No Florida record or Florida-fitted
+parameter seeds this generator.
+
+### Fitted models
+
+The controlled experiment fits:
+
+1. a linear log-price model with a 90 percent split-conformal interval, using
+   generated structural, market, and submarket features;
+2. a regularized seller-acceptance logit using offer divided by the observable
+   pre-offer reference, seller urgency, market heat, repair-cost fraction, and
+   submarket; and
+3. a regularized discrete-time sale-hazard logit using list-price premium,
+   market heat, condition, mortgage rate, submarket, and week indicators.
+
+The pooled acceptance rate, pooled median price, and period-specific sale hazard
+are the reported component baselines. Known offer and list-price log-odds
+coefficients are used for evaluation only. The controlled hazard equation has no
+omitted latent-demand shock, so the fitted and known randomized price
+coefficients refer to the same conditional log-odds estimand.
+
+Each generated listing holds its randomized list-price premium fixed throughout
+the spell. Applying the fitted common slope to a weekly markdown path assumes no
+price-history or carryover effects. That extension is a transparent decision
+laboratory assumption, not an experimentally validated dynamic response.
+
+### Fitted-model decision cases
+
+Three cases are selected from the independent evaluation environment using
+observed covariates and fitted valuation outputs: strong demand, weak demand
+with high carrying costs, and sparse training support with a consequential
+lower valuation stress. The selected rows are scored by all three fitted
+models. Simulator truth and realized outcomes are excluded from selection and
+the adapters.
+
+For each candidate acquisition price, the acceptance adapter divides the dollar
+offer by the selected home's observable pre-offer reference. This is the same
+denominator used to assign the randomized offer in the generator. The fitted
+contemporaneous home-value anchor is used heuristically for 17-week proceeds
+stress points and acquisition economics, but it is not a learned terminal
+proceeds forecast and is not substituted for the acceptance treatment denominator.
+Candidate acquisition bids are constructed as fractions of the pre-offer
+reference and remain inside the randomized support $[0.82,1.02]$. The fitted
+acceptance adapter rejects any attempted extrapolation beyond those bounds.
+
+For each case, the fitted valuation lower endpoint, point estimate, and upper
+endpoint become three proceeds-cap scenarios. The assigned weights differ by
+case and are declared in code. A split-conformal interval is a coverage set, not
+a three-point probability distribution, so these weights are heuristic stress
+weights rather than calibrated posterior probabilities.
+
+At each reachable price state, the list price is divided by the selected home's
+observable pre-listing reference and passed once to the fitted hazard. This is the
+same denominator used to assign the randomized list-price premium in the
+generator. Every scored premium remains inside $[-0.30,0.15]$; the 70 percent
+markdown floor is defined against that same reference, and the adapter rejects
+extrapolation. Conditional proceeds still vary across valuation scenarios and
+equal the smaller of the post-negotiation list price and scenario value. This
+separates sale incidence from proceeds while keeping the proceeds model
+deliberately simple.
+
+## 5. Dynamic decision rule
+
+The resale policy considers hold, 1 percent cut, 2.5 percent cut, and 5 percent
+cut actions over 17 weeks. It enforces a floor of 70 percent of reference value
+and applies a declared terminal-liquidation discount if inventory remains. For
+fitted cases, that floor is 70 percent of the observable pre-listing reference.
+
+For profit quantile function $Q_\Pi(u)$, the downside statistic is
+
+```math
+D_{0.10}(\Pi)
+=
+10\int_0^{0.10}\max\{-Q_\Pi(u),0\}\,du.
+```
+
+Every state chooses the action that maximizes expected profit minus the
+case-specific risk weight times $D_{0.10}$. The acquisition layer combines the
+optimized exit distribution with fitted seller acceptance and the rejection
+outcome, then applies the same criterion to each offer in the five-point grid.
+The public action is the best offer when its objective is positive and abstention
+otherwise.
+
+The risk criterion is reoptimized at every state. It is therefore a recursive
+downside rule rather than one global static mean-CVaR commitment. The scenario
+identity is also not carried through time: the current code remixes the same
+scenario weights after a no-sale transition and does not update beliefs from
+failure to sell.
+
+## 6. Interpretation
+
+The Florida layer supports predictive and descriptive claims for the stated
+samples. The controlled layer supports recovery of known generated responses and
+inspection of a fitted-model decision system. Neither layer identifies a real
+seller-acceptance curve, a causal Florida list-price elasticity, net operator
+profit, or realized policy lift.

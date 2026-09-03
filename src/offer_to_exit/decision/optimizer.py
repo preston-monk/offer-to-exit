@@ -94,7 +94,7 @@ class _NodeValue:
 class DynamicPricingOptimizer:
     """Optimize weekly list-price actions by backward induction.
 
-    The optimizer consumes only calibrated scenarios from ``SaleOutcomeModel``.
+    The optimizer consumes weighted scenarios from ``SaleOutcomeModel``.
     It does not know whether those scenarios came from a simulator, a Bayesian
     model, an API, or a table fixture.
     """
@@ -176,7 +176,12 @@ class DynamicPricingOptimizer:
 
             best_value: _NodeValue | None = None
             best_decision: PolicyDecision | None = None
-            price_floor = context.reference_value * self.config.min_list_price_ratio
+            list_price_reference = float(
+                context.features.get("prelisting_reference_value", context.reference_value)
+            )
+            if list_price_reference <= 0:
+                raise ValueError("prelisting_reference_value must be positive")
+            price_floor = list_price_reference * self.config.min_list_price_ratio
 
             for action in candidate_actions:
                 if action not in self.config.actions:
@@ -235,9 +240,11 @@ class DynamicPricingOptimizer:
                         no_sale_mass = scenario.probability * (1.0 - scenario.sale_probability)
                         if no_sale_mass <= 0:
                             continue
+                        # ``sale_price`` is already the scenario's modeled
+                        # conditional headline proceeds and cannot exceed the
+                        # posted price under the fitted adapter.
                         liquidation_price = (
-                            min(new_price, scenario.sale_price)
-                            * self.config.terminal_liquidation_discount
+                            scenario.sale_price * self.config.terminal_liquidation_discount
                         )
                         outcomes.append(
                             ProfitOutcome(

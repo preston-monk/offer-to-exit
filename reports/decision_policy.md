@@ -1,172 +1,188 @@
 # Decision-Policy Card
 
-## Policy objective
+## Decision object
 
 Offer-to-Exit chooses an acquisition offer and, conditional on acceptance, a
-weekly resale-price policy. The policy maximizes risk-adjusted contribution value,
-not valuation accuracy, offer acceptance, or sell-through in isolation.
+17-week resale-price policy for one home. The acquisition bid depends on the
+continuation value of the best exit policy. Seller acceptance, resale liquidity,
+carrying cost, and downside risk therefore enter one decision rather than four
+unrelated scores.
 
-For offer $a$, exit policy $\pi$, and contribution profit $\Pi$:
+## Contribution profit
+
+For sale price $P$, acquisition offer $a$, sale week $t$, pre-listing holding
+weeks $w_0$, repair cost $R$, acquisition cost $K$, fixed transaction cost $F$,
+transaction rate $c$, and weekly holding cost $H$, the code computes
 
 ```math
-U(a,\pi) = \mathbb{E}[\Pi(a,\pi)]
-- \lambda\operatorname{CVaR}_{0.95}[-\Pi(a,\pi)].
+\Pi(P,a,t)
+=
+P-a-R-K-F-cP-(w_0+t+1)H.
 ```
 
-The risk-aversion parameter $\lambda$ is configured and disclosed. Results must
-include the risk-neutral comparison rather than imply one setting is universally
-correct.
+These are transparent scenario inputs. They are not estimated from county deeds
+and they are not a complete operator profit-and-loss statement. The calculation
+omits corporate overhead, capital opportunity cost, renovation queues,
+concentration risk, and other portfolio constraints.
 
-## Contribution-profit boundary
+## Downside statistic
 
-Included in v0.1:
+For discrete profit distribution $\Pi$, quantile function $Q_\Pi(u)$, and tail
+mass $\alpha$, define
 
-- acquisition price;
-- repair/preparation-cost uncertainty;
-- selling/transaction costs;
-- weekly financing and holding costs;
-- negotiated exit proceeds;
-- sale timing and horizon censoring.
+```math
+D_\alpha(\Pi)
+=
+\frac{1}{\alpha}\int_0^\alpha
+\max\{-Q_\Pi(u),0\}\,du.
+```
 
-Excluded in v0.1:
+The released cases use $\alpha=0.10$. Thus $D_{0.10}$ is the average positive
+loss in the worst decile, with profitable outcomes inside that tail contributing
+zero loss. The objective at a state is
 
-- corporate overhead allocations;
-- portfolio concentration and capital opportunity cost beyond a simple bound;
-- operational capacity constraints;
-- taxes or fees not present in the configured schedule;
-- unmodeled renovation scope decisions.
+```math
+U(\Pi\mid s_t)
+=
+\mathbb E[\Pi\mid s_t]-\lambda D_{0.10}(\Pi\mid s_t).
+```
 
-This is contribution economics inside the documented simulator, not a real
-operator profit-and-loss statement.
+The case-specific parameter $\lambda$ is 0.20, 0.45, or 0.90. This statistic is
+CVaR-style, but the policy is not one global ex-ante mean-CVaR commitment. The
+objective is recomputed recursively at every unsold-inventory state.
 
-## Exit policy
+## Resale policy
 
 ### State
 
-- week and remaining horizon;
-- current list price;
-- property and lagged market features;
-- current exit-value distribution;
-- lagged demand summary when enabled;
-- accumulated holding cost and markdown count.
+The implemented state contains:
+
+- zero-indexed resale week;
+- current list price; and
+- an optional demand-state tuple, empty in the released cases.
+
+The home context contains a fitted contemporaneous value anchor, an observable
+pre-listing price reference, and case covariates. The current state does not
+include a persistent latent market regime.
 
 ### Actions
 
-- keep list price;
-- reduce by 1%;
-- reduce by 2.5%;
-- reduce by 5%.
+The feasible actions are:
 
-Price increases are excluded from v0.1. Prices must remain inside operational
-bounds, and the policy cannot exceed the configured markdown count or cadence.
+- hold the current list price;
+- reduce it by 1 percent;
+- reduce it by 2.5 percent; or
+- reduce it by 5 percent.
 
-### Transition and value
+The policy cannot increase price. A markdown that would take price below 70
+percent of reference value is infeasible. There is no separate cooldown or
+maximum-markdown-count constraint.
 
-For each feasible action, the policy integrates:
+### Transition
 
-1. probability of sale this week;
-2. conditional proceeds distribution if sold;
-3. current cost and loss distribution;
-4. holding cost and continuation value if unsold.
+For each post-action price, the fitted discrete-time hazard receives one premium
+relative to the observable pre-listing reference and returns the probability of
+sale in that week. Every scored premium lies in the randomized support
+$[-0.30,0.15]$. The same sale probability is paired with each valuation stress
+scenario, which changes conditional proceeds but not the treatment definition.
+A sale realizes conditional headline proceeds and the applicable costs. No sale
+moves to the next week at the new price.
 
-Finite-horizon dynamic programming or an equivalent backward recursion is
-preferred over reinforcement learning because the state/action space is small,
-the horizon is finite, and constraints should remain inspectable.
+After the seventeenth weekly decision, which is zero-indexed week 16, unsold
+inventory is liquidated at a case-specific fraction of modeled conditional
+headline proceeds. In the fitted adapter, those proceeds are the lower of 99.5
+percent of posted price and the valuation stress value. The released
+liquidation discounts are 0.94, 0.90, and 0.88.
+
+The profit distribution is compressed into at most 200 equal-mass bins as the
+tree is propagated backward. Compression preserves the mean while approximating
+the tail.
+
+## Scenario interpretation
+
+The fitted controlled valuation supplies a point estimate and a conformal lower
+and upper endpoint. The three values are assigned case-specific weights and used
+as stress scenarios. A conformal interval is not a probability distribution, so
+those weights are heuristic and should not be read as calibrated posterior
+probabilities.
+
+The same value-scenario weights are used again at later states. The code does not
+condition future weights on the scenario that generated the current transition
+and does not update beliefs after failure to sell. This independent scenario
+remix is a tractability assumption.
+
+Conditional sale price is the smaller of the scenario value and posted price
+after a 0.5 percent negotiation discount. This is a transparent proceeds rule,
+not a fitted proceeds model.
 
 ## Acquisition policy
 
-Each candidate offer is evaluated using:
+For each candidate offer $a$, the fitted acceptance model returns
+$q(a\mid x)$. The optimizer combines:
 
-- modeled seller-acceptance probability;
-- optimized exit continuation value if accepted;
-- contribution-cost distribution;
-- downside-risk penalty;
-- margin, sell-through, and loss constraints.
+- the accepted branch, weighted by $q(a\mid x)$, with its optimized resale
+  profit distribution; and
+- the rejected branch, weighted by $1-q(a\mid x)$, with the configured quote
+  cost, which is zero in the released cases.
 
-The selected offer is the feasible candidate with the largest risk-adjusted
-expected value. The policy abstains when no candidate is feasible or when data,
-uncertainty, domain, or overlap checks fail.
+The same mean-minus-worst-decile-loss criterion scores the resulting profit per
+lead. The fitted-case offer grids contain five values expressed as fractions of
+the observable pre-offer value reference. Every candidate lies inside the
+controlled treatment support $[0.82,1.02]$. The fitted acceptance adapter
+refuses to extrapolate beyond those bounds. The highest-objective supported grid
+point is selected. The public action is `price` when that objective is positive
+and `abstain` otherwise.
 
-## Constraints
+The core optimizer and the three released worked cases do not apply separate
+hard thresholds for margin, sell-through, loss probability, or interval width.
+Behavioral overlap is enforced by limiting acquisition bids to the randomized
+offer-ratio support. The cases choose the best supported grid point and return
+`abstain` when its objective is not positive. The illustrative FastAPI wrapper
+preserves the same offer-ratio support and adds operational review gates for
+missing support, scenario width, extreme cost inputs, and target margin. Those
+API gates are declared product rules, not estimated or calibrated decision
+boundaries. The wrapper still returns `abstain` whenever the core risk-adjusted
+objective is non-positive. Its
+`expected_profit` is measured per quoted lead, including seller rejection.
+`probability_of_loss` is the approximate negative-profit mass in the compressed
+lead-level outcome grid. `sale_by_120_days` is conditional on acquisition.
 
-The v0.1 worked-case configuration includes:
+## Fitted inputs
 
-- minimum expected contribution-margin rate;
-- minimum probability of sale by the 17-week horizon;
-- maximum probability of loss;
-- maximum interval-width and minimum-overlap rules;
-- bounded offer/value ratios;
-- bounded markdown actions and frequency.
+The worked cases use fitted controlled-experiment models rather than simulator
+truth or hand-coded response curves:
 
-These are scenario assumptions, not universal business rules. Every report must
-print their actual configured values.
+- a fitted linear valuation and split-conformal interval;
+- a fitted regularized seller-acceptance logit; and
+- a fitted regularized weekly sale-hazard logit.
 
-## Human review and abstention
+The three case profiles are selected from the independent generated evaluation
+sample using observed covariates and fitted valuation outputs. The healthy case
+maximizes a demand-oriented score, the stale case maximizes a weak-demand and
+high-rate score after excluding the first profile, and the sparse-support case
+favors rare generated submarkets, unusual size, and a wide fitted interval after
+excluding the first two. Its lower valuation stress must bind initial sale
+proceeds while the point prediction does not.
 
-The system returns a structured reason instead of an offer when:
+The fitted contemporaneous value anchor supplies heuristic 17-week proceeds
+stress values and scales costs; it is not a learned terminal proceeds forecast.
+The pre-listing reference scales list-price states and
+is the denominator of the sale-hazard treatment. The separate pre-offer
+reference scales the acquisition grid and is the denominator of the acceptance
+treatment. Keeping those objects distinct avoids silently replacing either
+randomized treatment definition with a model prediction.
 
-- a temporal/data contract fails;
-- the property is outside supported market or property type;
-- the exit-value interval is too wide;
-- behavioral treatment overlap is too weak;
-- no candidate satisfies the economic constraints;
-- the optimizer encounters an invalid state.
+## What the tests establish
 
-Review is not a loophole for silently overriding constraints. A review output
-must retain the relevant diagnostic and must not be counted as an automated
-offer in coverage metrics.
+The automated decision tests check cost reconciliation, action arithmetic,
+finite-horizon traversal, response to an expensive-carry fixture, response to a
+downside-risk fixture, integration of fitted model adapters, risk-distribution
+arithmetic, and execution of all three 17-week cases. These are implementation
+tests, not evidence that the policy improves real-market outcomes.
 
-## Policy baselines
+## Current exclusions
 
-### Acquisition
-
-- Fixed discount to estimated value.
-- Fixed seller-acceptance target.
-- Myopic acceptance probability times static expected margin.
-- Risk-neutral continuation-value policy.
-
-### Exit
-
-- List at estimated value and never cut.
-- Fixed markup with fixed markdown every two weeks.
-- One-week proceeds maximizer without continuation value.
-- Sell-through-only policy.
-- Dynamic policy without uncertainty or CVaR.
-
-### Upper bound
-
-The simulator oracle observes the true environment parameters and provides a
-regret benchmark. It is not a deployable competitor.
-
-## Invariants
-
-Automated tests should enforce at least these relationships, holding other inputs
-fixed:
-
-- higher repair cost cannot increase the acquisition offer;
-- higher weekly holding cost cannot increase the acquisition offer;
-- a higher required margin cannot increase the acquisition offer;
-- greater risk aversion cannot increase the acquisition offer;
-- an action may not increase list price;
-- a policy cannot act after sale or after the horizon;
-- invalid/out-of-domain rows cannot receive an automated offer;
-- profit calculations reconcile to proceeds minus every configured cost.
-
-These invariants are often more decision-relevant than reproducing an exact
-floating-point prediction.
-
-## Future policy evaluation
-
-Any population policy comparison should be labeled **simulated** and evaluated
-across independent environments. A valid future result would name:
-
-- baseline and policy version;
-- simulator version and seed family;
-- evaluation sample and maturity rule;
-- mean and downside metrics;
-- abstention/coverage;
-- sensitivity to core cost and behavior assumptions;
-- regret versus the oracle.
-
-“Improved simulated risk-adjusted contribution under the documented environment”
-is acceptable. “Would improve a real operator's profit” is not supported.
+The release does not implement portfolio allocation, correlated property risk,
+capital constraints, geographic concentration, belief updating, endogenous
+repair choice, learned proceeds, online learning, reinforcement learning, or a
+population policy experiment against operational baselines.

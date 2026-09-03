@@ -1,0 +1,532 @@
+{
+  "artifact_version": "v2",
+  "artifacts": {
+    "decision_cases": "artifacts/release/decision_cases.v2.csv",
+    "demo": "artifacts/release/demo.html",
+    "figures": [
+      "artifacts/release/valuation_evaluation.v2.png",
+      "artifacts/release/acceptance_response.v2.png",
+      "artifacts/release/hazard_sell_through.v2.png"
+    ],
+    "manifest": "artifacts/release/run_manifest.v2.json",
+    "metrics": "artifacts/release/metrics.v2.json",
+    "output_dir": "artifacts/release",
+    "summary": "artifacts/release/summary.v2.json"
+  },
+  "claim_scope": "All behavioral responses, counterfactuals, policy economics, and model metrics in this run come from a controlled generated experiment; they are not estimates of any real operator, homeowner population, or housing market.",
+  "data": {
+    "acquisition_offer_ratio_support": [
+      0.82,
+      1.02
+    ],
+    "list_price_premium_support": [
+      -0.3,
+      0.15
+    ],
+    "listing_period_days": 7,
+    "max_listing_periods": 17,
+    "n_evaluation_homes": 480,
+    "n_evaluation_listings": 200,
+    "n_train_homes": 720,
+    "n_train_listings": 322,
+    "source": "controlled generated fixture"
+  },
+  "decision_cases": [
+    {
+      "acceptance_offer_ratio": 0.87,
+      "acceptance_probability": 0.592476,
+      "automated_offer": 377473.67,
+      "evaluated_acceptance_offer_ratios": [
+        0.87,
+        0.89,
+        0.91,
+        0.93,
+        0.95
+      ],
+      "evidence_scope": "illustrative controlled-experiment decision; not real-market performance",
+      "expected_profit_per_lead": 10902.36,
+      "first_action": "hold",
+      "first_post_action_list_price": 442153.63,
+      "home_id": "LAB-HEALTHY-001",
+      "initial_list_price": 442153.63,
+      "initial_list_price_premium": 0.025,
+      "loss_probability": 0.118502,
+      "loss_probability_note": "approximate negative-profit mass after outcome-grid compression",
+      "model_source": "fitted contemporaneous value anchor, seller-acceptance model, and sale-hazard model from the controlled experiment",
+      "name": "healthy-demand-margin-protection",
+      "no_sale_path": [
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 0,
+          "weekly_sale_probability": 0.299597
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 1,
+          "weekly_sale_probability": 0.347493
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 2,
+          "weekly_sale_probability": 0.367266
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 3,
+          "weekly_sale_probability": 0.483506
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 4,
+          "weekly_sale_probability": 0.368901
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 5,
+          "weekly_sale_probability": 0.538678
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 6,
+          "weekly_sale_probability": 0.521428
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 7,
+          "weekly_sale_probability": 0.599351
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 8,
+          "weekly_sale_probability": 0.577808
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 9,
+          "weekly_sale_probability": 0.426117
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 10,
+          "weekly_sale_probability": 0.674584
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 11,
+          "weekly_sale_probability": 0.29668
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 12,
+          "weekly_sale_probability": 0.56449
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 13,
+          "weekly_sale_probability": 0.646476
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 14,
+          "weekly_sale_probability": 0.438526
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 15,
+          "weekly_sale_probability": 0.488024
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 442153.63,
+          "week": 16,
+          "weekly_sale_probability": 0.292371
+        }
+      ],
+      "path_length_weeks": 17,
+      "prelisting_reference_value": 431369.39,
+      "preoffer_reference_value": 433877.79,
+      "question": "How much price should we preserve when demand is healthy?",
+      "recommendation": "price",
+      "recommendation_reason": "best supported offer has positive risk-adjusted value",
+      "reference_value": 478076.83,
+      "risk_adjusted_objective": 8424.86,
+      "scored_list_price_premium_count": 2669,
+      "scored_list_price_premium_max": 0.025,
+      "scored_list_price_premium_min": -0.299992,
+      "selected_offer": 377473.67,
+      "selected_offer_to_value_anchor_ratio": 0.789567,
+      "valuation_interval_lower": 400390.31,
+      "valuation_interval_upper": 570836.63,
+      "worst_tail_positive_loss": 12387.52
+    },
+    {
+      "acceptance_offer_ratio": 0.85,
+      "acceptance_probability": 0.061085,
+      "automated_offer": null,
+      "evaluated_acceptance_offer_ratios": [
+        0.85,
+        0.875,
+        0.9,
+        0.925,
+        0.95
+      ],
+      "evidence_scope": "illustrative controlled-experiment decision; not real-market performance",
+      "expected_profit_per_lead": -925.49,
+      "first_action": "cut_5_pct",
+      "first_post_action_list_price": 553848.08,
+      "home_id": "LAB-STALE-002",
+      "initial_list_price": 582997.98,
+      "initial_list_price_premium": 0.075,
+      "loss_probability": 0.025051,
+      "loss_probability_note": "approximate negative-profit mass after outcome-grid compression",
+      "model_source": "fitted contemporaneous value anchor, seller-acceptance model, and sale-hazard model from the controlled experiment",
+      "name": "stale-inventory-high-carry",
+      "no_sale_path": [
+        {
+          "action": "cut_5_pct",
+          "post_action_list_price": 553848.08,
+          "week": 0,
+          "weekly_sale_probability": 0.057864
+        },
+        {
+          "action": "cut_2_5_pct",
+          "post_action_list_price": 540001.88,
+          "week": 1,
+          "weekly_sale_probability": 0.096038
+        },
+        {
+          "action": "cut_1_pct",
+          "post_action_list_price": 534601.86,
+          "week": 2,
+          "weekly_sale_probability": 0.11633
+        },
+        {
+          "action": "cut_1_pct",
+          "post_action_list_price": 529255.84,
+          "week": 3,
+          "weekly_sale_probability": 0.194237
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 529255.84,
+          "week": 4,
+          "weekly_sale_probability": 0.13083
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 529255.84,
+          "week": 5,
+          "weekly_sale_probability": 0.231175
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 529255.84,
+          "week": 6,
+          "weekly_sale_probability": 0.219095
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 529255.84,
+          "week": 7,
+          "weekly_sale_probability": 0.278092
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 529255.84,
+          "week": 8,
+          "weekly_sale_probability": 0.260586
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 529255.84,
+          "week": 9,
+          "weekly_sale_probability": 0.160512
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 529255.84,
+          "week": 10,
+          "weekly_sale_probability": 0.348029
+        },
+        {
+          "action": "cut_2_5_pct",
+          "post_action_list_price": 516024.44,
+          "week": 11,
+          "weekly_sale_probability": 0.129478
+        },
+        {
+          "action": "cut_1_pct",
+          "post_action_list_price": 510864.2,
+          "week": 12,
+          "weekly_sale_probability": 0.340639
+        },
+        {
+          "action": "cut_2_5_pct",
+          "post_action_list_price": 498092.59,
+          "week": 13,
+          "weekly_sale_probability": 0.496774
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 498092.59,
+          "week": 14,
+          "weekly_sale_probability": 0.29658
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 498092.59,
+          "week": 15,
+          "weekly_sale_probability": 0.339752
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 498092.59,
+          "week": 16,
+          "weekly_sale_probability": 0.182368
+        }
+      ],
+      "path_length_weeks": 17,
+      "prelisting_reference_value": 542323.7,
+      "preoffer_reference_value": 536733.9,
+      "question": "When does a deeper markdown beat another costly week on market?",
+      "recommendation": "abstain",
+      "recommendation_reason": "every supported offer has non-positive risk-adjusted value",
+      "reference_value": 528123.6,
+      "risk_adjusted_objective": -7808.04,
+      "scored_list_price_premium_count": 3189,
+      "scored_list_price_premium_max": 0.075,
+      "scored_list_price_premium_min": -0.299827,
+      "selected_offer": 456223.81,
+      "selected_offer_to_value_anchor_ratio": 0.863858,
+      "valuation_interval_lower": 442304.58,
+      "valuation_interval_upper": 630593.81,
+      "worst_tail_positive_loss": 15294.56
+    },
+    {
+      "acceptance_offer_ratio": 0.83,
+      "acceptance_probability": 0.029979,
+      "automated_offer": null,
+      "evaluated_acceptance_offer_ratios": [
+        0.83,
+        0.85,
+        0.88,
+        0.91,
+        0.94
+      ],
+      "evidence_scope": "illustrative controlled-experiment decision; not real-market performance",
+      "expected_profit_per_lead": -42.35,
+      "first_action": "hold",
+      "first_post_action_list_price": 743387.31,
+      "home_id": "LAB-SPARSE-SUPPORT-003",
+      "initial_list_price": 743387.31,
+      "initial_list_price_premium": 0.04,
+      "loss_probability": 0.017461,
+      "loss_probability_note": "approximate negative-profit mass after outcome-grid compression",
+      "model_source": "fitted contemporaneous value anchor, seller-acceptance model, and sale-hazard model from the controlled experiment",
+      "name": "sparse-support-downside-protection",
+      "no_sale_path": [
+        {
+          "action": "hold",
+          "post_action_list_price": 743387.31,
+          "week": 0,
+          "weekly_sale_probability": 0.093166
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 743387.31,
+          "week": 1,
+          "weekly_sale_probability": 0.113403
+        },
+        {
+          "action": "cut_1_pct",
+          "post_action_list_price": 735953.44,
+          "week": 2,
+          "weekly_sale_probability": 0.137483
+        },
+        {
+          "action": "cut_1_pct",
+          "post_action_list_price": 728593.91,
+          "week": 3,
+          "weekly_sale_probability": 0.226924
+        },
+        {
+          "action": "cut_1_pct",
+          "post_action_list_price": 721307.97,
+          "week": 4,
+          "weekly_sale_probability": 0.172874
+        },
+        {
+          "action": "cut_1_pct",
+          "post_action_list_price": 714094.89,
+          "week": 5,
+          "weekly_sale_probability": 0.322251
+        },
+        {
+          "action": "cut_1_pct",
+          "post_action_list_price": 706953.94,
+          "week": 6,
+          "weekly_sale_probability": 0.335366
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 706953.94,
+          "week": 7,
+          "weekly_sale_probability": 0.409262
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 706953.94,
+          "week": 8,
+          "weekly_sale_probability": 0.387936
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 706953.94,
+          "week": 9,
+          "weekly_sale_probability": 0.255881
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 706953.94,
+          "week": 10,
+          "weekly_sale_probability": 0.489806
+        },
+        {
+          "action": "cut_2_5_pct",
+          "post_action_list_price": 689280.09,
+          "week": 11,
+          "weekly_sale_probability": 0.211747
+        },
+        {
+          "action": "cut_1_pct",
+          "post_action_list_price": 682387.29,
+          "week": 12,
+          "weekly_sale_probability": 0.483096
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 682387.29,
+          "week": 13,
+          "weekly_sale_probability": 0.568698
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 682387.29,
+          "week": 14,
+          "weekly_sale_probability": 0.36027
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 682387.29,
+          "week": 15,
+          "weekly_sale_probability": 0.407344
+        },
+        {
+          "action": "hold",
+          "post_action_list_price": 682387.29,
+          "week": 16,
+          "weekly_sale_probability": 0.229534
+        }
+      ],
+      "path_length_weeks": 17,
+      "prelisting_reference_value": 714795.49,
+      "preoffer_reference_value": 750132.76,
+      "question": "How should uncertainty change both the offer and exit policy?",
+      "recommendation": "abstain",
+      "recommendation_reason": "every supported offer has non-positive risk-adjusted value",
+      "reference_value": 842883.15,
+      "risk_adjusted_objective": -2403.98,
+      "scored_list_price_premium_count": 3204,
+      "scored_list_price_premium_max": 0.04,
+      "scored_list_price_premium_min": -0.299589,
+      "selected_offer": 622610.19,
+      "selected_offer_to_value_anchor_ratio": 0.738667,
+      "valuation_interval_lower": 705916.34,
+      "valuation_interval_upper": 1006425.21,
+      "worst_tail_positive_loss": 2624.03
+    }
+  ],
+  "market_shape": "Location-neutral controlled market",
+  "metrics": {
+    "evaluation_contract": {
+      "behavioral_truth_used_for_scoring_only": true,
+      "environment": "independent shifted generated evaluation environment",
+      "right_censoring_preserved": true,
+      "used_for_fitting": false
+    },
+    "sale_hazard": {
+      "absolute_response_recovery_error": 0.08818,
+      "counterfactual_response_monotone": true,
+      "estimated_log_odds_effect_per_10pp_overpricing": -1.28818,
+      "evaluation_listings": 200,
+      "evaluation_person_periods": 839,
+      "mean_predicted_sell_through_by_horizon": 0.966435,
+      "period_rate_baseline_brier": 0.173813,
+      "period_rate_baseline_log_loss": 0.531576,
+      "person_period_brier_score": 0.13716,
+      "person_period_log_loss": 0.43534,
+      "truth_log_odds_effect_per_10pp_overpricing": -1.2
+    },
+    "seller_acceptance": {
+      "absolute_response_recovery_error": 0.067472,
+      "brier_score": 0.183745,
+      "counterfactual_response_monotone": true,
+      "estimated_log_odds_effect_per_10pp_offer": 1.667472,
+      "evaluation_rows": 480,
+      "expected_calibration_error_10_bin": 0.052466,
+      "log_loss": 0.544981,
+      "pooled_rate_baseline_brier": 0.243989,
+      "truth_log_odds_effect_per_10pp_offer": 1.6
+    },
+    "valuation": {
+      "evaluation_rows": 480,
+      "interval_coverage": 0.9,
+      "interval_nominal_coverage": 0.9,
+      "mae_improvement_over_pooled_median": 0.64767,
+      "mean_absolute_error": 43536.33,
+      "median_absolute_error": 32777.05,
+      "median_absolute_percentage_error": 0.078321,
+      "median_interval_width_rate": 0.356525,
+      "pooled_median_baseline_mae": 123567.07,
+      "wape": 0.093178
+    }
+  },
+  "mode": "controlled_experiment",
+  "package_version": "0.2.0",
+  "reproducibility": {
+    "acquisition_offer_reference_observable": true,
+    "behavioral_treatment_support_enforced": true,
+    "config_path": "configs/release.yaml",
+    "config_sha256": "eaeebfe3faf9701294e5747ba8ffe1a70d8f9f164dad4a95c21bcfe62c77cb67",
+    "decision_case_truth_excluded": true,
+    "decision_cases_use_fitted_models": true,
+    "evaluation_seed": 4079,
+    "evaluation_truth_excluded_from_model_fitting": true,
+    "hazard_truth_matches_fitted_estimand": true,
+    "independent_evaluation_environment": true,
+    "list_price_reference_observable": true,
+    "run_seed": 20260901,
+    "training_seed": 1129,
+    "valuation_scenario_weights_are_heuristic": true,
+    "weekly_stress_scenarios_are_remixed": true
+  },
+  "run_id": "release-seed-20260901-schema-2",
+  "run_name": "release",
+  "schema_version": 2
+}

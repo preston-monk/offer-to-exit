@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class PricingRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     property_id: str = Field(min_length=1)
     estimated_market_value: float = Field(gt=25_000, le=10_000_000)
-    living_area_sqft: float = Field(gt=300, le=15_000)
-    year_built: int = Field(ge=1850, le=2030)
     repair_cost: float = Field(ge=0, le=1_000_000)
     weekly_holding_cost: float = Field(gt=0, le=25_000)
     risk_aversion: float = Field(ge=0, le=10)
@@ -27,9 +27,22 @@ class PricingResponse(BaseModel):
     property_id: str
     recommendation: str
     acquisition_offer: float | None = Field(default=None, gt=0)
-    expected_profit: float
-    probability_of_loss: float = Field(ge=0, le=1)
-    sale_by_120_days: float = Field(ge=0, le=1)
+    expected_profit: float = Field(
+        description="Expected contribution profit per quoted lead, including seller rejection."
+    )
+    probability_of_loss: float = Field(
+        ge=0,
+        le=1,
+        description=(
+            "Approximate loss probability per quoted lead after outcome-grid compression, "
+            "including seller rejection."
+        ),
+    )
+    sale_by_120_days: float = Field(
+        ge=0,
+        le=1,
+        description="Cumulative sale probability conditional on acquisition.",
+    )
     policy: list[WeeklyAction]
     reasons: list[str]
 

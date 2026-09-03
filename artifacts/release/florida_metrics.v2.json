@@ -1,0 +1,506 @@
+{
+  "artifacts": {
+    "duration_figure": "florida_inventory_duration.v2.png",
+    "manifest": "florida_manifest.v2.json",
+    "metrics": "florida_metrics.v2.json",
+    "operator_effects": "florida_operator_effects.v2.csv",
+    "operator_summary": "florida_operator_summary.v2.csv",
+    "report": "florida_evidence.html",
+    "valuation_figure": "florida_valuation_transport.v2.png"
+  },
+  "claim_scope": "County deeds support prediction of recorded prices and descriptive ownership duration. They do not reveal rejected offers, weekly list-price paths, repairs, operating costs, days on market, or causal price response.",
+  "created_at": "2026-09-03T18:36:48.976156+00:00",
+  "data": {
+    "duration_common_window_rows": {
+      "orlando_orange": 1027,
+      "tampa_hillsborough": 1364
+    },
+    "duration_model_population_rows": {
+      "orlando_orange": 1027,
+      "tampa_hillsborough": 3158
+    },
+    "eligible_market_rows": {
+      "orlando_orange": 72474,
+      "tampa_hillsborough": 348754
+    },
+    "episode_linkage_status": {
+      "orlando_orange": {
+        "administrative_horizon": 1,
+        "completed": 1042,
+        "repeat_acquisition_before_exit": 1,
+        "right_censored": 58
+      },
+      "tampa_hillsborough": {
+        "administrative_horizon": 41,
+        "completed": 3853,
+        "repeat_acquisition_before_exit": 1,
+        "right_censored": 63
+      }
+    },
+    "episodes_sha256": "f6c81c6978d22898c71841701776c4f5ed01813f0654740c0edd588ce8f60b8a",
+    "linked_episode_rows": {
+      "orlando_orange": 1102,
+      "tampa_hillsborough": 3958
+    },
+    "raw_safe_transaction_rows": {
+      "orlando_orange": 206568,
+      "tampa_hillsborough": 2450504
+    },
+    "transactions_sha256": "b892d88fd9444f0f4faf4ff8524eff5301b1513aaa2c8e4e525014d3f1725ddb",
+    "valuation_panel_rows": {
+      "orlando_orange": 8249,
+      "tampa_hillsborough": 64226
+    },
+    "valuation_prior_gap_years": {
+      "orlando_orange": {
+        "maximum": 4.492813141683778,
+        "median": 1.0321697467488022,
+        "p90": 3.0691307323750854
+      },
+      "tampa_hillsborough": {
+        "maximum": 4.498288843258043,
+        "median": 2.537987679671458,
+        "p90": 4.05201916495551
+      }
+    },
+    "valuation_selection_audit": {
+      "orlando_orange": {
+        "date_price_improved_single_family": 88854,
+        "officially_qualified": 27251,
+        "orange_warranty_deed_proxy": 45223,
+        "selected": 72474
+      },
+      "tampa_hillsborough": {
+        "date_price_improved_single_family": 460749,
+        "officially_qualified": 348754,
+        "orange_warranty_deed_proxy": 0,
+        "selected": 348754
+      }
+    }
+  },
+  "design": {
+    "development_market": "Hillsborough County (Tampa), Florida",
+    "duration_horizon_weeks": 52,
+    "duration_model_operators": [
+      "Offerpad",
+      "Opendoor"
+    ],
+    "duration_population": "improved single-family acquisition spells for Opendoor and Offerpad; model training uses historical Tampa spells and descriptive comparisons use the common January 2022 onward window; deed qualification is not required",
+    "duration_target": "weeks from recorded acquisition deed to recorded resale deed",
+    "external_evaluation_status": "Orange is excluded from fitting and interval calibration. This is an external-market evaluation, not a preregistered untouched holdout.",
+    "external_holdout": "Orange County (Orlando), Florida",
+    "linked_operator_registry": [
+      "Opendoor",
+      "Offerpad",
+      "Zillow Offers",
+      "RedfinNow"
+    ],
+    "valuation_normalization": "prior eligible sale price relative to its county-quarter median; the prior eligible sale must be in an earlier quarter; prediction scaled by the lagged current-quarter county median",
+    "valuation_population": "high-turnover improved single-family repeat sales whose prior eligible sale occurred no more than 4.5 years earlier",
+    "valuation_qualification_rule": "Hillsborough county-qualified deeds; Orange county-qualified deeds when the description is present, otherwise warranty deeds as a documented proxy",
+    "valuation_target": "recorded sale price"
+  },
+  "inventory_duration": {
+    "design": {
+      "analysis_parcels": {
+        "calibration": 679,
+        "out_of_time_test": 1362,
+        "training": 1088
+      },
+      "analysis_rows": {
+        "calibration": 680,
+        "out_of_time_test": 1364,
+        "training": 1091
+      },
+      "calibration_start": "2021-01-01T00:00:00",
+      "latest_observed_training_exit": "2021-12-30T00:00:00",
+      "purged_parcels": {
+        "calibration": 4,
+        "training": 19
+      },
+      "purged_rows": {
+        "calibration": 4,
+        "training": 19
+      },
+      "raw_rows": {
+        "calibration": 684,
+        "out_of_time_test": 1364,
+        "training": 1110
+      },
+      "test_start": "2022-01-01T00:00:00",
+      "training_followup_cutoff": "2022-01-01T00:00:00",
+      "training_spells_dropped_without_complete_week": 14,
+      "training_spells_truncated_at_cutoff": 263
+    },
+    "orlando_common_window": {
+      "brier_skill_score": -0.253096,
+      "constant_hazard_brier_score": 0.046214,
+      "mean_predicted_person_period_hazard": 0.137229,
+      "n_episodes": 1027,
+      "n_events_within_horizon": 955,
+      "n_parcels": 1026,
+      "n_risk_rows": 19680,
+      "observed_person_period_hazard": 0.048526,
+      "person_period_brier_score": 0.05791,
+      "person_period_log_loss": 0.233096,
+      "risk_row_auc": 0.64892
+    },
+    "tampa_out_of_time": {
+      "brier_skill_score": -0.372688,
+      "constant_hazard_brier_score": 0.040386,
+      "mean_predicted_person_period_hazard": 0.143624,
+      "n_episodes": 1364,
+      "n_events_within_horizon": 1245,
+      "n_parcels": 1362,
+      "n_risk_rows": 29658,
+      "observed_person_period_hazard": 0.041979,
+      "person_period_brier_score": 0.055437,
+      "person_period_log_loss": 0.229683,
+      "risk_row_auc": 0.630318
+    },
+    "tampa_training": {
+      "brier_skill_score": 0.030661,
+      "constant_hazard_brier_score": 0.05198,
+      "mean_predicted_person_period_hazard": 0.055068,
+      "n_episodes": 1757,
+      "n_events_within_horizon": 1494,
+      "n_parcels": 1753,
+      "n_risk_rows": 27161,
+      "observed_person_period_hazard": 0.055005,
+      "person_period_brier_score": 0.050386,
+      "person_period_log_loss": 0.196863,
+      "risk_row_auc": 0.72159
+    }
+  },
+  "opendoor_slice": [
+    {
+      "acquisition_end": "2026-08-14",
+      "acquisition_start": "2022-01-04",
+      "km_exit_probability_120d": 0.500975,
+      "km_exit_probability_90d": 0.330425,
+      "km_median_exit_days": 120.0,
+      "market": "orlando_orange",
+      "median_observed_hold_days": 118.0,
+      "n_acquisitions": 935,
+      "n_observed_exits": 881,
+      "n_unique_parcels": 934,
+      "observed_exit_share": 0.942246,
+      "operator": "opendoor"
+    },
+    {
+      "acquisition_end": "2026-08-14",
+      "acquisition_start": "2022-01-04",
+      "km_exit_probability_120d": 0.4385,
+      "km_exit_probability_90d": 0.292227,
+      "km_median_exit_days": 135.0,
+      "market": "tampa_hillsborough",
+      "median_observed_hold_days": 134.0,
+      "n_acquisitions": 1190,
+      "n_observed_exits": 1132,
+      "n_unique_parcels": 1188,
+      "observed_exit_share": 0.951261,
+      "operator": "opendoor"
+    }
+  ],
+  "operator_effects": [
+    {
+      "hazard_odds_ratio": 1.0,
+      "log_hazard_difference": 0.0,
+      "operator": "offerpad",
+      "reference_operator": true
+    },
+    {
+      "hazard_odds_ratio": 0.910513,
+      "log_hazard_difference": -0.093747,
+      "operator": "opendoor",
+      "reference_operator": false
+    }
+  ],
+  "operator_summary": [
+    {
+      "acquisition_end": "2026-08-12",
+      "acquisition_start": "2022-01-04",
+      "km_exit_probability_120d": 0.714143,
+      "km_exit_probability_90d": 0.505247,
+      "km_median_exit_days": 90.0,
+      "market": "orlando_orange",
+      "median_observed_hold_days": 90.0,
+      "n_acquisitions": 92,
+      "n_observed_exits": 91,
+      "n_unique_parcels": 92,
+      "observed_exit_share": 0.98913,
+      "operator": "offerpad"
+    },
+    {
+      "acquisition_end": "2026-08-14",
+      "acquisition_start": "2022-01-04",
+      "km_exit_probability_120d": 0.500975,
+      "km_exit_probability_90d": 0.330425,
+      "km_median_exit_days": 120.0,
+      "market": "orlando_orange",
+      "median_observed_hold_days": 118.0,
+      "n_acquisitions": 935,
+      "n_observed_exits": 881,
+      "n_unique_parcels": 934,
+      "observed_exit_share": 0.942246,
+      "operator": "opendoor"
+    },
+    {
+      "acquisition_end": "2026-03-05",
+      "acquisition_start": "2022-01-05",
+      "km_exit_probability_120d": 0.586207,
+      "km_exit_probability_90d": 0.408046,
+      "km_median_exit_days": 105.0,
+      "market": "tampa_hillsborough",
+      "median_observed_hold_days": 104.0,
+      "n_acquisitions": 174,
+      "n_observed_exits": 171,
+      "n_unique_parcels": 174,
+      "observed_exit_share": 0.982759,
+      "operator": "offerpad"
+    },
+    {
+      "acquisition_end": "2026-08-14",
+      "acquisition_start": "2022-01-04",
+      "km_exit_probability_120d": 0.4385,
+      "km_exit_probability_90d": 0.292227,
+      "km_median_exit_days": 135.0,
+      "market": "tampa_hillsborough",
+      "median_observed_hold_days": 134.0,
+      "n_acquisitions": 1190,
+      "n_observed_exits": 1132,
+      "n_unique_parcels": 1188,
+      "observed_exit_share": 0.951261,
+      "operator": "opendoor"
+    }
+  ],
+  "package_version": "0.2.0",
+  "provenance": {
+    "analysis": {
+      "duration_calibration_start": "2021-01-01",
+      "duration_test_start": "2022-01-01",
+      "episode_observation_end_by_market": {
+        "orlando_orange": "2026-08-31",
+        "tampa_hillsborough": "2026-08-21"
+      },
+      "max_duration_weeks": 52,
+      "maximum_episode_linkage_days": 1095,
+      "maximum_years_since_prior_sale": 4.5,
+      "minimum_sale_date": "2010-01-01",
+      "random_state": 20260903,
+      "seasoning_sensitivity_minimum_prior_gap_days": 30,
+      "valuation_calibration_start": "2022-01-01",
+      "valuation_test_start": "2024-01-01"
+    },
+    "source_snapshot": {
+      "hillsborough_sales": {
+        "bytes": 71166154,
+        "landing_page": "https://downloads.hcpafl.org/",
+        "publisher": "Hillsborough County Property Appraiser",
+        "retrieved_at": "2026-09-03T16:28:03.584328+00:00",
+        "sha256": "d5f4e7f090676a133c0cb0bd7852074807c8c61c3681a911105ad9c9c8221d2e",
+        "title": "Hillsborough County All Sales",
+        "transport": "aspnet_postback",
+        "url": "https://downloads.hcpafl.org/"
+      },
+      "orange_sales": {
+        "bytes": 17382366,
+        "landing_page": "https://vgispublic.ocpafl.org/server/rest/services/Webmap/SALES/MapServer/5",
+        "publisher": "Orange County Property Appraiser",
+        "records": 206568,
+        "retrieved_at": "2026-09-03T16:41:28.583140+00:00",
+        "sha256": "8357c92e34ebe6bc3f1bd3983e4c4852888d908f6b8c3a9326262b25e4030269",
+        "title": "Orange County All Sales",
+        "transport": "arcgis",
+        "url": "https://vgispublic.ocpafl.org/server/rest/services/Webmap/SALES/MapServer/5/query"
+      }
+    }
+  },
+  "release_version": "v2",
+  "run_id": "florida-2026-09-03-schema-2",
+  "schema_version": 2,
+  "valuation": {
+    "design": {
+      "analysis_parcels": {
+        "calibration": 9828,
+        "out_of_time_test": 10190,
+        "training": 31514
+      },
+      "analysis_rows": {
+        "calibration": 10216,
+        "out_of_time_test": 10514,
+        "training": 37226
+      },
+      "calibration_start": "2022-01-01T00:00:00",
+      "purged_parcels": {
+        "calibration": 1323,
+        "training": 3946
+      },
+      "purged_rows": {
+        "calibration": 1371,
+        "training": 4899
+      },
+      "raw_rows": {
+        "calibration": 11587,
+        "out_of_time_test": 10514,
+        "training": 42125
+      },
+      "test_start": "2024-01-01T00:00:00"
+    },
+    "minimum_30_day_prior_gap_sensitivity": {
+      "orlando_common_window": {
+        "interval_coverage": 0.806666,
+        "mean_absolute_error": 127895.893976,
+        "mean_absolute_percentage_error": 0.183263,
+        "mean_error": -32925.072004,
+        "median_absolute_error": 49938.796095,
+        "median_absolute_percentage_error": 0.106837,
+        "median_interval_width": 212474.554004,
+        "n_parcels": 5856,
+        "n_transactions": 6021,
+        "root_mean_squared_error": 383031.259147,
+        "weighted_r_squared": 0.635691
+      },
+      "orlando_rolled_prior_baseline": {
+        "interval_coverage": null,
+        "mean_absolute_error": 146593.334402,
+        "mean_absolute_percentage_error": 0.240241,
+        "mean_error": -66633.841781,
+        "median_absolute_error": 66783.642691,
+        "median_absolute_percentage_error": 0.126278,
+        "median_interval_width": null,
+        "n_parcels": 5856,
+        "n_transactions": 6021,
+        "root_mean_squared_error": 454788.627385,
+        "weighted_r_squared": 0.486405
+      },
+      "panel_rows": {
+        "orlando_orange": 8213,
+        "tampa_hillsborough": 64129
+      },
+      "rule": "Require at least 30 days between the prior and target deed in addition to requiring the prior deed to fall in an earlier calendar quarter.",
+      "tampa_out_of_time": {
+        "interval_coverage": 0.850664,
+        "mean_absolute_error": 76074.495649,
+        "mean_absolute_percentage_error": 0.135895,
+        "mean_error": -20129.070732,
+        "median_absolute_error": 41064.504162,
+        "median_absolute_percentage_error": 0.094985,
+        "median_interval_width": 196034.624498,
+        "n_parcels": 10184,
+        "n_transactions": 10506,
+        "root_mean_squared_error": 186299.20347,
+        "weighted_r_squared": 0.819713
+      },
+      "tampa_rolled_prior_baseline": {
+        "interval_coverage": null,
+        "mean_absolute_error": 78310.202572,
+        "mean_absolute_percentage_error": 0.145,
+        "mean_error": -38807.973264,
+        "median_absolute_error": 38828.571429,
+        "median_absolute_percentage_error": 0.086495,
+        "median_interval_width": null,
+        "n_parcels": 10184,
+        "n_transactions": 10506,
+        "root_mean_squared_error": 171319.200498,
+        "weighted_r_squared": 0.847541
+      }
+    },
+    "orlando_common_window": {
+      "interval_coverage": 0.805191,
+      "mean_absolute_error": 129038.650513,
+      "mean_absolute_percentage_error": 0.185045,
+      "mean_error": -31401.173404,
+      "median_absolute_error": 49969.886084,
+      "median_absolute_percentage_error": 0.105978,
+      "median_interval_width": 213615.994735,
+      "n_parcels": 5863,
+      "n_transactions": 6036,
+      "root_mean_squared_error": 389979.351681,
+      "weighted_r_squared": 0.622007
+    },
+    "orlando_observed_qualified_baseline": {
+      "interval_coverage": null,
+      "mean_absolute_error": 162373.808364,
+      "mean_absolute_percentage_error": 0.253601,
+      "mean_error": -50502.737119,
+      "median_absolute_error": 64476.744186,
+      "median_absolute_percentage_error": 0.121645,
+      "median_interval_width": null,
+      "n_parcels": 4054,
+      "n_transactions": 4124,
+      "root_mean_squared_error": 543392.65105,
+      "weighted_r_squared": 0.327716
+    },
+    "orlando_observed_qualified_sensitivity": {
+      "interval_coverage": 0.797731,
+      "mean_absolute_error": 144459.316755,
+      "mean_absolute_percentage_error": 0.201729,
+      "mean_error": -26547.81673,
+      "median_absolute_error": 52548.340024,
+      "median_absolute_percentage_error": 0.110848,
+      "median_interval_width": 220259.898026,
+      "n_parcels": 4054,
+      "n_transactions": 4124,
+      "root_mean_squared_error": 434534.18285,
+      "weighted_r_squared": 0.570094
+    },
+    "orlando_observed_qualified_window": {
+      "end": "2026-08-19",
+      "interpretation": "This diagnostic changes both qualification observability and calendar period; it does not isolate warranty-deed proxy error.",
+      "start": "2025-01-02"
+    },
+    "orlando_rolled_prior_baseline": {
+      "interval_coverage": null,
+      "mean_absolute_error": 147902.145473,
+      "mean_absolute_percentage_error": 0.242243,
+      "mean_error": -65041.902961,
+      "median_absolute_error": 66715.324046,
+      "median_absolute_percentage_error": 0.126098,
+      "median_interval_width": null,
+      "n_parcels": 5863,
+      "n_transactions": 6036,
+      "root_mean_squared_error": 468851.209118,
+      "weighted_r_squared": 0.45365
+    },
+    "tampa_calibration": {
+      "interval_coverage": 0.905508,
+      "mean_absolute_error": 57518.782559,
+      "mean_absolute_percentage_error": 0.104827,
+      "mean_error": -22763.610133,
+      "median_absolute_error": 32872.203605,
+      "median_absolute_percentage_error": 0.078619,
+      "median_interval_width": 186626.428607,
+      "n_parcels": 9828,
+      "n_transactions": 10216,
+      "root_mean_squared_error": 158660.709115,
+      "weighted_r_squared": 0.815162
+    },
+    "tampa_out_of_time": {
+      "interval_coverage": 0.853157,
+      "mean_absolute_error": 76502.863398,
+      "mean_absolute_percentage_error": 0.136985,
+      "mean_error": -18952.975438,
+      "median_absolute_error": 41010.522317,
+      "median_absolute_percentage_error": 0.094638,
+      "median_interval_width": 197147.096367,
+      "n_parcels": 10190,
+      "n_transactions": 10514,
+      "root_mean_squared_error": 188398.034614,
+      "weighted_r_squared": 0.815548
+    },
+    "tampa_rolled_prior_baseline": {
+      "interval_coverage": null,
+      "mean_absolute_error": 78268.315599,
+      "mean_absolute_percentage_error": 0.144946,
+      "mean_error": -38789.3457,
+      "median_absolute_error": 38827.160494,
+      "median_absolute_percentage_error": 0.086486,
+      "median_interval_width": null,
+      "n_parcels": 10190,
+      "n_transactions": 10514,
+      "root_mean_squared_error": 171249.612217,
+      "weighted_r_squared": 0.847598
+    }
+  }
+}

@@ -1,6 +1,8 @@
-"""Semi-synthetic environments with explicit causal ground truth."""
+"""Controlled generated environments with explicit causal ground truth."""
 
 from .generator import (
+    LIST_PRICE_PREMIUM_SUPPORT,
+    OFFER_RATIO_SUPPORT,
     CausalParameters,
     EnvironmentConfig,
     SimulatedEnvironment,
@@ -13,6 +15,8 @@ from .generator import (
 )
 
 __all__ = [
+    "LIST_PRICE_PREMIUM_SUPPORT",
+    "OFFER_RATIO_SUPPORT",
     "CausalParameters",
     "EnvironmentConfig",
     "SimulatedEnvironment",

@@ -1,15 +1,15 @@
 schema_version: 1
 
-# Every setting below is consumed by the executable workflow.
+# Every setting below is consumed by the executable controlled experiment.
 run:
   name: quickstart
-  mode: semi_synthetic
+  mode: controlled_experiment
   seed: 20260901
   output_dir: artifacts/quickstart
   overwrite: true
 
 market:
-  name: Phoenix-Mesa-Chandler
+  name: Location-neutral controlled market
   exit_horizon_weeks: 17
 
 data:

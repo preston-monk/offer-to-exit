@@ -1,0 +1,32 @@
+{
+  "artifact_sha256": {
+    "acceptance_response.v2.png": "967c7929ce5e04aa97b9b8fb5fbf01dc516bf93f41394a47e32def01394e0a30",
+    "decision_cases.v2.csv": "3b360351307b26b915614446f9ed279763b55fcc5d713575c8646f86a6f4a5dd",
+    "demo.html": "9cc72425bb308338c4fb42d7708df51e77d80f4c49b85039975384209fa2ca6b",
+    "hazard_sell_through.v2.png": "7e998858119907e988421bf15a78e730f1081d39739285dfb36bb6ed00a3f610",
+    "metrics.v2.json": "f859ad068dcf0d6b33ecae4583a7c2389a4a32016bf35da0ad206beb144cd201",
+    "summary.v2.json": "8afac63b96d021c2141783f2b0ec891fd57b1afd2c186cec5ed1addc01b359bf",
+    "valuation_evaluation.v2.png": "3012f70f9531fdb94b42ab2981b4ffb0edc5e6c5aaa6e7dd44835cae13c938a5"
+  },
+  "artifact_version": "v2",
+  "artifacts": {
+    "decision_cases": "decision_cases.v2.csv",
+    "demo": "demo.html",
+    "figures": [
+      "valuation_evaluation.v2.png",
+      "acceptance_response.v2.png",
+      "hazard_sell_through.v2.png"
+    ],
+    "manifest": "run_manifest.v2.json",
+    "metrics": "metrics.v2.json",
+    "summary": "summary.v2.json"
+  },
+  "claim_scope": "All behavioral responses, counterfactuals, policy economics, and model metrics in this run come from a controlled generated experiment; they are not estimates of any real operator, homeowner population, or housing market.",
+  "config_sha256": "eaeebfe3faf9701294e5747ba8ffe1a70d8f9f164dad4a95c21bcfe62c77cb67",
+  "evaluation_seed": 4079,
+  "mode": "controlled_experiment",
+  "package_version": "0.2.0",
+  "run_id": "release-seed-20260901-schema-2",
+  "schema_version": 2,
+  "training_seed": 1129
+}

@@ -1,83 +1,129 @@
-# v0.1 Release Evidence
+# Release Evidence
 
-## Claim boundary
+This page is an index to the generated evidence for Offer-to-Exit 0.2.0. It does
+not copy headline metrics because the public county sources can change and the
+artifacts are regenerated from the current retrieval.
 
-These are deterministic **semi-synthetic results** from one independently seeded,
-covariate-shifted evaluation environment. They are not estimates of a real
-operator, homeowner population, housing market, or economic impact. The public
-Phoenix/Maricopa pipeline is separate; every fitted result below uses generated
-data so the behavioral counterfactual truth is known.
+## Florida transaction study
 
-## Reproducibility header
+The Florida workflow downloads and sanitizes Hillsborough and Orange County
+sales, builds repeat-sale and named-iBuyer episode panels, fits the Tampa models,
+and scores the common future samples.
 
-| Field | Release value |
-|---|---|
-| Package | `offer-to-exit 0.1.0` |
-| Run | `release-seed-20260901-schema-1` |
-| Configuration | [`configs/release.yaml`](../configs/release.yaml) |
-| Configuration SHA-256 | `7478ddc9750a3b673c7cc8f672712c249908afe49c58cdfd3561cbd34d44c479` |
-| Training / evaluation seeds | `1129` / `4079` |
-| Training / evaluation homes | `720` / `480` |
-| Evaluation listings / person-periods | `213` / `1,389` |
-| Decision cadence / horizon | weekly / 17 periods |
-| Manifest | [`artifacts/release/run_manifest.v1.json`](../artifacts/release/run_manifest.v1.json) |
+The primary outputs are:
 
-The manifest records a checksum for every emitted JSON, CSV, PNG, and HTML
-artifact. The integration test runs the pipeline twice and asserts byte-stable
-metrics, decisions, and figures.
+- [Florida evidence report](../artifacts/release/florida_evidence.html)
+- [Florida metrics](../artifacts/release/florida_metrics.v2.json)
+- [operator duration summary](../artifacts/release/florida_operator_summary.v2.csv)
+- [operator model effects](../artifacts/release/florida_operator_effects.v2.csv)
+- [valuation transport figure](../artifacts/release/florida_valuation_transport.v2.png)
+- [inventory duration figure](../artifacts/release/florida_inventory_duration.v2.png)
+- [Florida artifact manifest](../artifacts/release/florida_manifest.v2.json)
 
-## Independent-evaluation results
+### How to read the valuation evidence
 
-| Component | Baseline | Baseline result | v0.1 result | Interpretation |
-|---|---|---:|---:|---|
-| Exit valuation | Pooled training median | MAE `$123,567` | MAE `$43,536` | `64.8%` lower MAE on shifted generated homes |
-| Exit interval | None | — | `90.0%` coverage at `90%` nominal | Median width is `35.7%` of prediction; uncertainty is material |
-| Seller acceptance | Pooled training rate | Brier `0.2469` | Brier `0.1965` | Simulated behavior only; 10-bin ECE is `0.0561` |
-| Weekly sale hazard | Period-only hazard | Log loss `0.4025` | Log loss `0.3922` | Right-censored person-period evaluation |
+The relevant comparison is the fitted repeat-sale model against the
+rolled-forward prior-sale baseline. Both observe the home's own prior eligible price and
+county market movement. Metrics are parcel weighted, and the table reports both
+transactions and unique parcels.
 
-### Known-response recovery
+Tampa 2024-forward results are out of time. Orlando 2024-forward results use the
+Tampa-fitted model and Tampa conformal radius without Orange fitting or
+calibration. The Orlando exercise is an external-market evaluation, not a
+preregistered untouched holdout.
 
-| Treatment | Simulator truth | Fitted effect | Absolute error | Monotone? |
-|---|---:|---:|---:|---|
-| +10 percentage points in offer/value | `+1.600` log-odds | `+1.337` | `0.263` | Yes |
-| +10 percentage points of list overpricing | `-1.200` log-odds | `-1.177` | `0.023` | Yes |
+The target population is high-turnover repeat sales with a prior eligible sale no more
+than 4.5 years earlier and in a strictly earlier calendar quarter. A 30-day
+minimum-gap sensitivity is reported separately. Orange's missing historical
+qualification description is handled with a disclosed warranty-deed proxy.
+Results do not apply to every home or every sale in either county.
 
-Truth is used for evaluation only, never as a fitting input. This recovery is a
-simulator diagnostic, not a real elasticity estimate.
+### How to read the duration evidence
 
-## Three traceable diagnostic decisions
+The operator summary reports Kaplan-Meier title-exit quantities for the common
+2022-forward acquisition window. It retains open right-censored spells. The
+interval is acquisition deed to disposition deed, not MLS days on market.
 
-These cases are hand-constructed stress scenarios solved by the decision module.
-They are not sampled from the 480-home evaluation holdout and are not a population
-policy backtest.
+The hazard metrics should be read jointly. AUC measures ranking, while
+person-period Brier score, constant-hazard Brier score, Brier skill, and
+observed versus predicted hazard reveal probability calibration. Positive
+discrimination does not excuse negative Brier skill.
 
-| Case | Gate | Best grid offer | First exit action | Acceptance | Profit / lead | Loss probability | Downside CVaR loss |
-|---|---|---:|---|---:|---:|---:|---:|
-| Healthy demand / margin protection | **Price** | `$348,000` | Hold | `24.6%` | `$4,829` | `0.6%` | `$564` |
-| Stale inventory / high carry | **Abstain** | `$510,000` diagnostic only | Cut `5%` if acquired | `23.1%` | `-$6,199` | `14.1%` | `$61,419` |
-| Thin comps / downside protection | **Abstain** | `$266,500` diagnostic only | Cut `2.5%` if acquired | `17.8%` | `$852` | `3.6%` | `$9,086` |
+Operator coefficient rows are regularized conditional associations. They are
+not causal comparisons of Opendoor and Offerpad.
 
-The stale and thin-comps rows demonstrate the decision gate: an optimizer may
-identify the least-bad supported offer while the action layer still returns no
-automated offer when risk-adjusted value is non-positive. Full paths are in
-[`decision_cases.v1.csv`](../artifacts/release/decision_cases.v1.csv) and the
-[static decision explorer](../artifacts/release/demo.html).
+## Controlled decision experiment
 
-## Figures
+The location-neutral controlled workflow generates independent training and
+shifted evaluation environments, fits valuation, seller-acceptance, and weekly
+sale-hazard models, and passes those fitted models into three 17-week decisions.
 
-![Predicted versus generated valuation](../artifacts/release/valuation_evaluation.v1.png)
+The outputs are:
 
-![Seller acceptance response versus simulator truth](../artifacts/release/acceptance_response.v1.png)
+- [controlled decision laboratory](../artifacts/release/demo.html)
+- [controlled metrics](../artifacts/release/metrics.v2.json)
+- [worked decisions](../artifacts/release/decision_cases.v2.csv)
+- [controlled run summary](../artifacts/release/summary.v2.json)
+- [controlled artifact manifest](../artifacts/release/run_manifest.v2.json)
+- [valuation figure](../artifacts/release/valuation_evaluation.v2.png)
+- [seller-response figure](../artifacts/release/acceptance_response.v2.png)
+- [sale-hazard figure](../artifacts/release/hazard_sell_through.v2.png)
 
-![List-price response and cumulative sell-through](../artifacts/release/hazard_sell_through.v1.png)
+The `v2` suffix on these filenames is the controlled artifact-schema version,
+not the software release number.
 
-## What v0.1 does not claim
+### How to read the controlled evidence
 
-- No real-world price elasticity or economic lift.
-- No repeated full-policy comparison, bootstrap uncertainty, or oracle regret.
-- No overlap-stratified or geography-slice result.
-- No stress-suite result, learned sale-proceeds model, portfolio allocator, or
-  production deployment.
+Seller offer ratios relative to an observable pre-offer value reference and
+list-price premia relative to an observable pre-listing reference
+are randomized in the generator, so the fitted log-odds responses can be
+compared with known coefficients. Candidate offers and list prices are scored
+against those same respective denominators and remain within randomized support.
+The controlled hazard has no omitted latent-demand term. This comparison
+validates response recovery inside the controlled environment. It does not
+estimate a real seller-acceptance or buyer-demand elasticity.
 
-Those measurements remain unimplemented. The evidence table leaves them absent
-rather than substituting unsupported numbers.
+The three case profiles are chosen using observed evaluation covariates and
+fitted valuation outputs, then scored by the fitted models. The valuation
+interval endpoints are assigned heuristic stress weights. They are not a
+calibrated distribution. The decision outputs show what the implemented
+objective does under those assumptions; they are not a population policy
+backtest or estimate of economic lift.
+
+## Reproduction
+
+Install the locked environment and run the checks:
+
+```bash
+uv sync --all-extras
+make check
+```
+
+Rebuild the Florida inputs and aggregate evidence:
+
+```bash
+make florida-data
+make florida-study
+```
+
+Rebuild the controlled experiment:
+
+```bash
+make reproduce
+```
+
+Or rebuild both evidence layers:
+
+```bash
+make release
+```
+
+Raw and processed county transaction files remain local and Git-ignored. The
+committed manifests contain hashes that connect each evidence bundle to its
+inputs and outputs.
+
+## Results not claimed
+
+The release does not contain a real-market seller response, causal Florida list
+price elasticity, causal operator comparison, net operator profit, population
+policy lift, oracle regret study, portfolio allocator, or production deployment.

@@ -1,133 +1,141 @@
 # Data Contract
 
-This directory documents the evidence boundary for Offer-to-Exit. Raw and
-derived data are local build inputs, not repository artifacts.
+The project uses public Florida deeds for predictive and descriptive evidence
+and a separate location-neutral generator for controlled decision experiments.
+Raw and transaction-level Florida files are local build inputs, not repository
+artifacts.
 
-## Data zones
+## Local data zones
 
 ```text
 data/
-├── README.md       This contract
-├── sample/         Small generated, de-identified fixtures allowed in Git
-├── raw/            Immutable source downloads; ignored
-├── external/       Optional licensed reference data; ignored
-├── interim/        Validated and joined tables; ignored
-├── processed/      Model-ready as-of tables; ignored
-└── cache/          Replaceable computation cache; ignored
+├── README.md
+├── raw/          publisher downloads and local fetch manifest; ignored
+└── processed/    privacy-safe transaction and episode tables; ignored
 ```
 
-Only `README.md` and deliberately small files in `sample/` may be committed.
-Files in the other zones must remain ignored even when their upstream source is
-public. Public availability does not automatically grant redistribution rights.
+The code catalog contains exactly two current external sources:
 
-## Evidence layers
+- `hillsborough_sales`: Hillsborough County Property Appraiser All Sales bulk
+  archive; and
+- `orange_sales`: Orange County Property Appraiser All Sales ArcGIS layer.
 
-| Layer | Examples | Status | Interpretation |
-|---|---|---|---|
-| Property context | living area, beds/baths, year built, lot size, coarse location | Public or generated equivalent | Predictive/descriptive |
-| Transaction context | prior sales, repeat-sale behavior, time-filtered comparable sales | Public or generated equivalent | Predictive/descriptive |
-| Market context | lagged price index, mortgage rate, inventory, seasonality | Public aggregate or generated equivalent | Predictive/descriptive |
-| Acquisition behavior | offer, seller acceptance, reservation value | Semi-synthetic | Causal only inside the simulator |
-| Exit behavior | weekly price action, buyer arrival, sale hazard, negotiated proceeds | Semi-synthetic | Causal only inside the simulator |
-| Operations | repair, selling, financing, and holding costs | Transparent schedules plus simulated uncertainty | Scenario assumptions |
+No Florida property record is bundled with the package.
 
-The generated quickstart fixture contains no owner names, real addresses, or
-exact coordinates. If real property records are added locally, public examples
-must replace identifiers with stable random IDs and coarsen geography.
+## Fetch and prepare
 
-## Units of observation
+```bash
+uv run offer-to-exit fetch --raw-dir data/raw
+uv run offer-to-exit prepare \
+  --raw-dir data/raw \
+  --processed-dir data/processed
+```
 
-The pipeline produces two principal analytical tables.
+The fetch step writes `data/raw/manifest.json` with source metadata and SHA-256
+hashes. The prepare step writes:
 
-### Acquisition table
+- `hillsborough_transactions_safe.csv.gz`;
+- `orange_transactions_safe.csv.gz`;
+- `florida_transactions_safe.csv.gz`;
+- `named_ibuyer_episodes_safe.csv.gz`; and
+- `preparation_manifest.json`.
 
-One row represents one quote-time decision for one property.
+Publisher files are mutable. Repeating a download later can produce different
+rows and therefore different hashes or metrics.
 
-Required concepts include:
+## Privacy rule
 
-- stable parcel group identifier;
-- `quote_date` and feature-level `available_at` timestamps;
-- structure and coarse geographic attributes;
-- lagged market state;
-- value target or simulator truth;
-- candidate acquisition offers and simulated acceptance outcomes.
+Raw county inputs can contain party names and parcel identifiers. Preparation
+uses names only to classify four narrow iBuyer brands, hashes parcel IDs with a
+market namespace, and drops direct identifiers before writing processed tables.
 
-### Property-week table
+Processed outputs contain no raw party names, street addresses, coordinates,
+document numbers, or raw parcel IDs. They remain ignored because a hashed parcel
+history is still row-level property data and does not need to be public.
 
-One row represents one property still at risk of sale at the beginning of one
-listing week.
+## Canonical transaction grain
 
-Required concepts include:
+One transaction row is one recorded parcel transfer. The common columns include:
 
-- week start and weeks on market;
-- list price before the weekly action;
-- action chosen that week;
-- only demand information observed before that action;
-- sale/censoring indicator and conditional proceeds when sold.
+- `parcel_id`: 20-character (80-bit) truncated SHA-256 digest with a market namespace;
+- `market`: `tampa_hillsborough` or `orlando_orange`;
+- sale date and recorded consideration;
+- qualification, improvement, DOR, property-type, and instrument fields;
+- optional county property attributes; and
+- canonical buyer and seller operator labels.
 
-Rows after sale do not exist. Homes still unsold after week 17 are right-censored;
-they are not silently labeled as sales or zero-valued outcomes.
+Property-use fields are read as strings to preserve leading zeros. County dates
+are normalized to calendar dates.
 
-## Temporal contract
+## Valuation panel
 
-Every feature must carry or inherit an availability timestamp. For a quote-time
-decision, `available_at <= quote_date`. For a week-$t$ resale decision, only
-information available before that action may be used.
+The Florida release builds the valuation panel from improved single-family
+transactions priced between $25,000 and $10 million and dated from 2010 onward.
+Hillsborough requires its official qualification flag. Orange uses its sale
+description when observed and a `WD` warranty-deed proxy when that description
+is missing.
 
-The following are prohibited predictors:
+Only repeat sales with a prior observation no more than 4.5 years earlier enter
+the final target population. The panel derives prior eligible sale price, prior-sale gap,
+county-quarter medians, a rolled-forward prior-price baseline, and the normalized
+variables used by the repeat-sale estimator.
+The prior eligible sale must be in a strictly earlier calendar quarter than the target;
+the release also reports a 30-day minimum-gap sensitivity.
 
-- comparable sales that closed after the decision;
-- final days on market, total markdowns, or closing price;
-- same-week demand observed after the price action;
-- assessor fields revised after the target transaction;
-- inspection or repair facts learned only after acquisition at quote time;
-- future or revised macroeconomic series unavailable on the decision date.
+Hillsborough target rows are split before 2022, 2022 through 2023, and 2024
+onward. Parcels assigned to later targets are purged from earlier target samples.
+Orange 2024-forward rows are used only for external-market scoring.
 
-## Split contract
+## Operator episode grain
 
-The real-data design uses chronological train, validation, and test periods
-grouped by parcel.
+One episode begins when a classified operator is grantee on a deed with at least
+$10,000 in recorded consideration. It ends at the first later deed where the same
+operator is grantor and consideration meets the same threshold. This screen
+excludes nominal or administrative transfers that do not reveal interpretable
+purchase or resale prices. Open episodes are right-censored.
+The episode table records acquisition and disposition fields, holding days,
+event status, linkage status, property fields from acquisition, and operator.
 
-1. No parcel or repeat sale may cross partitions.
-2. Model selection and policy tuning use validation only.
-3. The newest test outcomes remain untouched until the pipeline is frozen.
-4. The dataset ends at least 120 days before the test labeling cutoff so active
-   listings are not mislabeled as failures.
-5. Simulator training and evaluation use independent seeds and evaluation
-   parameters are not visible to the policy.
+The four possible linkage statuses are:
 
-## Validation gates
+- `completed`;
+- `right_censored`;
+- `administrative_horizon`; and
+- `repeat_acquisition_before_exit`.
 
-- Schema and type checks pass.
-- Keys are unique at their stated grain.
-- Prices, areas, dates, and rates satisfy plausible configured bounds.
-- No future feature enters a decision row.
-- Split membership is disjoint at the parcel level.
-- Missingness is measured by period, geography, and price tier.
-- Duplicate/near-duplicate records are either resolved or reported.
-- Sample fixtures contain no direct identifiers.
+The modeling panel accepts `completed`, `right_censored`, and
+`administrative_horizon`. The last group is retained as censored because its
+1,095 observed non-exit days cover the full 52-week model window.
+`repeat_acquisition_before_exit` remains excluded because spell identity is
+ambiguous. Observed exits use ceiling weeks; any externally supplied zero-day
+duration maps to week one. Censored spells use completed weeks and need at least
+seven days of follow-up to contribute a risk row or the model-eligible
+Kaplan-Meier summary. Pre-2022 Tampa training spells are administratively
+censored at January 1, 2022 before weekly expansion.
 
-## Provenance manifest
+Recorded duration is deed to deed. It is not listing time. Recorded acquisition
+and resale price can be used to compute a gross deed-price difference locally,
+but that difference is not profit.
 
-Every non-generated source must record:
+## Controlled generated data
 
-- source organization and direct URL;
-- dataset title and version or retrieval date;
-- license/terms and redistribution decision;
-- original filename and cryptographic checksum;
-- transformations required before use;
-- known coverage breaks or restatements;
-- earliest date the field was actually available.
+The generated experiment is built in memory by the simulation module rather
+than downloaded into `data/`. It creates separate training and evaluation
+environments with independent seeds. An appraisal-like
+`preoffer_reference_value` is constructed from observed property and market
+characteristics plus independent measurement noise. A separate
+`prelisting_reference_value` updates that observable signal with observed
+appreciation and new measurement noise. Offer ratios are randomized relative to
+the pre-offer reference, list-price premia are randomized relative to the
+pre-listing reference, and seller acceptance and weekly sale incidence follow
+known response equations. The hazard equation has no omitted latent-demand
+shock; event-level Bernoulli draws still supply outcome noise.
 
-The run manifest records the exact input manifest, configuration, random seeds,
-package version, and code revision. A result without that provenance is not a
-release result.
+The generator is location-neutral and does not ingest Florida records. Its
+causal interpretation applies only to its own randomized price treatments.
 
-## Responsible use
+## Public output rule
 
-County property data can include information that is public yet unnecessary for
-this decision. Owner names, contact information, exact addresses in examples, and
-other direct identifiers are excluded. Geography can still proxy for protected
-characteristics, so error and abstention behavior must be inspected across coarse
-areas and data-density strata. This project is not a lending, insurance, tenant,
-or consumer-eligibility system.
+Only aggregate Florida metrics, operator summaries, figures, HTML evidence, and
+manifests are committed. No claim should rely on a local transaction table that
+is absent from the generated public evidence.

@@ -7,15 +7,20 @@ from .baselines import (
     TargetAcceptanceOfferPolicy,
 )
 from .cases import (
+    WorkedCaseModels,
     WorkedDecisionCase,
     WorkedDecisionResult,
+    model_driven_worked_decision_cases,
     solve_worked_decision_cases,
     worked_decision_cases,
 )
 from .models import (
     ConstantElasticitySaleModel,
+    FittedHazardSaleOutcomeAdapter,
+    FittedSellerAcceptanceAdapter,
     LogisticAcceptanceModel,
     MarketScenarioSpec,
+    ValueScenarioSpec,
 )
 from .optimizer import (
     AcquisitionOfferOptimizer,
@@ -47,6 +52,8 @@ __all__ = [
     "ConstantElasticitySaleModel",
     "CostStructure",
     "DynamicPricingOptimizer",
+    "FittedHazardSaleOutcomeAdapter",
+    "FittedSellerAcceptanceAdapter",
     "FixedSpreadOfferPolicy",
     "HoldPricePolicy",
     "HomeContext",
@@ -64,11 +71,14 @@ __all__ = [
     "SaleScenario",
     "ScheduledMarkdownPolicy",
     "TargetAcceptanceOfferPolicy",
+    "ValueScenarioSpec",
+    "WorkedCaseModels",
     "WorkedDecisionCase",
     "WorkedDecisionResult",
     "downside_cvar_loss",
     "expected_profit",
     "lower_tail_mean",
+    "model_driven_worked_decision_cases",
     "solve_worked_decision_cases",
     "weighted_quantile",
     "worked_decision_cases",

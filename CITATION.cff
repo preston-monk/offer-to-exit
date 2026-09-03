@@ -5,16 +5,17 @@ type: software
 authors:
   - family-names: Monk
     given-names: Thomas Preston
-version: 0.1.0
+version: 0.2.0
 license: MIT
 abstract: >-
-  A reproducible decision system connecting residential acquisition offers to
-  risk-aware resale pricing in a Phoenix/Maricopa-shaped semi-synthetic
-  environment.
+  A reproducible housing-pricing research prototype that combines a Tampa and
+  Orlando transaction study with a location-neutral controlled experiment for
+  linked acquisition and resale decisions under uncertainty.
 keywords:
   - housing economics
   - pricing
-  - uncertainty quantification
-  - decision science
-  - causal simulation
+  - repeat sales
   - survival analysis
+  - uncertainty quantification
+  - dynamic programming
+  - causal simulation

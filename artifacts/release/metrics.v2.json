@@ -1,0 +1,50 @@
+{
+  "claim_scope": "All behavioral responses, counterfactuals, policy economics, and model metrics in this run come from a controlled generated experiment; they are not estimates of any real operator, homeowner population, or housing market.",
+  "evaluation_environment": "independent shifted generated evaluation environment",
+  "metrics": {
+    "evaluation_contract": {
+      "behavioral_truth_used_for_scoring_only": true,
+      "environment": "independent shifted generated evaluation environment",
+      "right_censoring_preserved": true,
+      "used_for_fitting": false
+    },
+    "sale_hazard": {
+      "absolute_response_recovery_error": 0.08818,
+      "counterfactual_response_monotone": true,
+      "estimated_log_odds_effect_per_10pp_overpricing": -1.28818,
+      "evaluation_listings": 200,
+      "evaluation_person_periods": 839,
+      "mean_predicted_sell_through_by_horizon": 0.966435,
+      "period_rate_baseline_brier": 0.173813,
+      "period_rate_baseline_log_loss": 0.531576,
+      "person_period_brier_score": 0.13716,
+      "person_period_log_loss": 0.43534,
+      "truth_log_odds_effect_per_10pp_overpricing": -1.2
+    },
+    "seller_acceptance": {
+      "absolute_response_recovery_error": 0.067472,
+      "brier_score": 0.183745,
+      "counterfactual_response_monotone": true,
+      "estimated_log_odds_effect_per_10pp_offer": 1.667472,
+      "evaluation_rows": 480,
+      "expected_calibration_error_10_bin": 0.052466,
+      "log_loss": 0.544981,
+      "pooled_rate_baseline_brier": 0.243989,
+      "truth_log_odds_effect_per_10pp_offer": 1.6
+    },
+    "valuation": {
+      "evaluation_rows": 480,
+      "interval_coverage": 0.9,
+      "interval_nominal_coverage": 0.9,
+      "mae_improvement_over_pooled_median": 0.64767,
+      "mean_absolute_error": 43536.33,
+      "median_absolute_error": 32777.05,
+      "median_absolute_percentage_error": 0.078321,
+      "median_interval_width_rate": 0.356525,
+      "pooled_median_baseline_mae": 123567.07,
+      "wape": 0.093178
+    }
+  },
+  "run_id": "release-seed-20260901-schema-2",
+  "schema_version": 2
+}

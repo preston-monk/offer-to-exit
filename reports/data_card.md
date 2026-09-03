@@ -1,149 +1,168 @@
 # Data Card
 
-## Dataset summary
+## Summary
 
-**Name:** Offer-to-Exit Phoenix/Maricopa v0.1
-**Market:** Maricopa County, Arizona
-**Property type:** Single-family homes
-**Decision cadence:** Quote time plus weekly resale decisions
-**Maximum resale horizon:** 17 weeks
-**Construction:** Public or generated market context plus semi-synthetic behavior
-**Current status:** v0.1 public-data preparation audited; release experiment uses
-the generated fixture so behavioral ground truth remains known
+Offer-to-Exit has two independent data layers.
 
-## Local public-data audit (2026-09-01)
+| Layer | Population | Purpose |
+|---|---|---|
+| Florida transactions | Hillsborough County sales, Orange County sales, and named iBuyer ownership spells | Repeat-sale prediction, geographic evaluation, and recorded inventory duration |
+| Controlled experiment | Location-neutral generated homes, offers, and listing weeks | Known-response recovery and fitted-model decision diagnostics |
 
-The reproducible fetch/prepare commands were executed against all six cataloged
-sources. Raw downloads and sanitized full tables remain Git-ignored.
+The generated layer is not drawn from, calibrated to, or seeded by the Florida
+data. Keeping these layers separate prevents simulated behavioral responses from
+being read as estimates for Florida households or buyers.
 
-| Source | Download | SHA-256 prefix | Prepared Phoenix/Maricopa result |
-|---|---:|---|---:|
-| Maricopa Residential Master | 58.4 MB | `8b6fdc8c31fe` | 1,416,644 of 1,416,731 rows retained |
-| Maricopa Sales Affidavits | 61.4 MB | `4ac71e880880` | 740,561 of 912,807 plausible-sale rows retained |
-| Maricopa Parcel Points | 85.7 MB | `e6acc936bcbc` | Downloaded; raw geometry intentionally not materialized in v0.1 |
-| Realtor.com metro history | 32.9 MB | `258e84edc705` | 121 Phoenix metro-month rows |
-| FHFA HPI master | 17.2 MB | `f7eca3f886f0` | 623 Phoenix-area index rows across published frequencies |
-| FRED 30-year mortgage rate | 46.9 KB | `c3cbce71ddda` | 2,892 weekly observations |
+## Florida sources
 
-The county extracts contain fields that are public but unnecessary for this
-decision. Preparation streams only an allowlist, decodes the publisher's legacy
-Windows-1252 text, hashes parcel identifiers, rejects owner/address-like column
-names, and writes no owner names, grantor/grantee names, street addresses, deed
-numbers, or exact parcel geometry. A header audit found none of those fields in
-the two sanitized tables.
+| Source | Retrieval | Fields used |
+|---|---|---|
+| [Hillsborough County Property Appraiser All Sales](https://downloads.hcpafl.org/) | Current bulk archive discovered through the publisher's download form | Parcel, sale date and amount, qualification, improvement, property use, instrument, grantor, grantee |
+| [Orange County Property Appraiser All Sales](https://vgispublic.ocpafl.org/server/rest/services/Webmap/SALES/MapServer/5) | ArcGIS query ordered by `OBJECTID`, 1,000 records per page, no geometry | Parcel, sale date and amount, sale description, deed and property-use codes, selected property attributes, grantor, grantee |
 
-These real tables establish the ingest, provenance, privacy, and market-context
-layer. The v0.1 metric bundle does not mix them into its behavioral claims; its
-fitted experiment is explicitly semi-synthetic.
+These are mutable public sources. The local raw-data manifest records retrieval
+metadata and file hashes. The public release manifest records hashes for the
+privacy-safe inputs and aggregate artifacts.
 
-## Why a semi-synthetic dataset is necessary
+## Privacy treatment
 
-A public deed or assessor record can describe a property and a completed sale.
-It usually cannot reveal:
+County files may contain direct identifiers. The preparation code:
 
-- the acquisition offers a seller did not accept;
-- the seller's unobserved reservation value or convenience preference;
-- a randomized set of list prices that could have been chosen;
-- buyer arrivals, views, or conversions under counterfactual prices;
-- proprietary repair estimates and operating costs.
+1. reads party names transiently;
+2. assigns a canonical operator label only for anchored Opendoor, Offerpad,
+   Zillow Homes, or RedfinNow name patterns;
+3. hashes parcel numbers with a market namespace; and
+4. omits names, addresses, geometry, document IDs, and raw parcel numbers from
+   the analytical outputs.
 
-Treating historical list-price changes as random would create a false causal
-story: prices are often cut because latent demand is weak. The released workflow uses a
-documented simulator for seller acceptance, weekly buyer demand, negotiated
-proceeds, and cost uncertainty. Controlled exploration creates treatment support,
-and simulator truth makes response-recovery error measurable.
+Raw and processed transaction tables are Git-ignored. The repository publishes
+aggregate counts, metrics, figures, and checksums rather than transaction rows.
+The operator matcher favors precision. Unrecognized affiliates can therefore be
+missed.
 
-This design supports a statement such as “the fitted model recovered simulated
-price response with this error.” It does **not** support a statement such as
-“Phoenix sellers have this real acceptance elasticity.”
+## Florida transaction table
+
+One row is a recorded transfer. The common fields include market, parcel hash,
+sale date and price, qualification, property-use and improvement indicators,
+instrument type, optional property attributes, and classified buyer or seller
+operator. Property-use codes are stored as strings so leading zeros survive the
+county join.
+
+Exact duplicates on market, parcel, date, and price are removed before modeling.
+The current pipeline does not claim to identify every related-party,
+multi-parcel, or administrative deed.
+
+## Repeat-sale analytical sample
+
+The target is recorded price among improved single-family repeat sales with a
+prior observed sale no more than 4.5 years earlier. This high-turnover target is
+used because the current Orange service begins in 2022 and because the two
+county sources do not share a sufficiently rich historical structural-feature
+set for a symmetric cross-sectional model.
+
+The initial screen requires:
+
+- sale date on or after January 1, 2010;
+- sale price from $25,000 through $10 million;
+- an improved-property indicator; and
+- a single-family DOR or property-type code.
+
+Hillsborough sales must be county-qualified. Orange uses
+`SALE_DESCRIPTION` when present. That field is missing in the retrieved 2022
+through 2024 history, so `DEED_CODE == "WD"` is used as a warranty-deed proxy
+when qualification is unknown. A warranty deed is not proof of an arm's-length
+sale. Residual non-market transfers are a material Orange measurement risk.
+
+The released sample funnel and prior-sale gap summaries are in
+[`florida_metrics.v2.json`](../artifacts/release/florida_metrics.v2.json).
+The prior eligible sale must be in a strictly earlier calendar quarter than the target
+sale, and the release includes a 30-day minimum-gap sensitivity.
+
+## Valuation split and baseline
+
+Hillsborough targets are split by sale date:
+
+- before 2022: proper training;
+- 2022 and 2023: conformal calibration; and
+- 2024 onward: out-of-time test.
+
+Parcels in a later target period are purged from earlier target periods. Orange
+sales from 2024 onward are scored without fitting or interval calibration on
+Orange outcomes. This is an external-market evaluation, not a preregistered
+untouched holdout.
+
+The baseline rolls the home's prior eligible price forward by the change from the county
+median in its prior-sale quarter to the lagged county median before the current
+sale. It observes the same own-price history and market movement as the fitted
+repeat-sale model.
+
+## Named iBuyer episodes
+
+An acquisition is a deed on which a classified operator is grantee and recorded
+consideration is at least $10,000. A completed episode ends at the first later
+deed for the same parcel on which that operator is grantor and consideration
+meets the same threshold. The screen excludes nominal or administrative
+transfers that do not reveal interpretable purchase or resale prices. Open episodes are right-censored at each county's latest valid
+transaction date at or before that source's retrieval timestamp.
+
+The linker records four statuses: `completed`, `right_censored`,
+`administrative_horizon`, and `repeat_acquisition_before_exit`. The modeling
+panel retains the first three. A potential link longer than 1,095 days is
+assigned the administrative-horizon status rather than treated as an observed
+exit; because that episode has a fully observed non-exit through the 52-week
+model horizon, it enters as censored at week 52. Repeat-acquisition-before-exit
+episodes remain excluded because their spell identity is ambiguous.
+
+The duration study uses improved single-family acquisitions from 2016 onward
+and requires at least 25 observations for an operator in each county. Opendoor
+and Offerpad satisfy that common-support rule in the current release. The model
+uses a 52-week risk window, with later dispositions treated as censored at week
+52. The common descriptive comparison covers acquisitions from January 2022
+onward.
+
+Observed linked exits use the ceiling of deed-to-deed days divided by seven.
+Censored spells use completed weeks only;
+those with less than seven days of follow-up do not enter the weekly panel or
+the model-eligible Kaplan-Meier summary. Every pre-2022 Tampa training spell is
+administratively censored at January 1, 2022 before weekly expansion.
+
+Qualification is not required for the duration sample because the outcome is
+recorded title duration. The interval from acquisition deed to disposition deed
+is not MLS days on market.
+
+## Controlled experiment
+
+The controlled generator creates a location-neutral housing population. It
+constructs observable appraisal-like pre-offer and pre-listing references,
+randomizes acquisition offer ratios relative to the first and list-price premia
+relative to the second, generates responses from known log-odds equations, and
+retains right-censored listing histories. The controlled hazard equation omits
+no latent-demand regressor; random event draws provide outcome noise.
+
+Training and evaluation use independent random seeds. The evaluation environment
+changes synthetic home values, square footage, market heat, mortgage rates,
+appreciation, and submarket shares. Known response coefficients are excluded
+from fitting and used only to score response recovery.
+
+The causal interpretation is internal to the generated experiment. It does not
+describe real seller acceptance, buyer demand, or economic impact.
 
 ## Intended uses
 
-- Train and compare time-aware home-value models.
-- Estimate known behavioral response functions inside a simulator.
-- Evaluate acquisition and resale policies under controlled uncertainty.
-- Test leakage prevention, calibration, abstention, and stress behavior.
-- Reproduce a complete pricing-system workflow and its evidence bundle.
+- Evaluate a Tampa-trained repeat-sale predictor over time and in Orlando.
+- Describe and predict deed-to-deed ownership duration for named iBuyers.
+- Inspect known response recovery in a controlled price experiment.
+- Exercise a linked acquisition and resale decision rule under declared costs
+  and uncertainty scenarios.
 
-## Out-of-scope uses
+## Excluded uses
 
-- Real property offers or automated transactions.
-- Lending, insurance, taxation, appraisal, or consumer eligibility.
-- Inference about individual homeowners, buyers, or neighborhoods.
-- Claims about markets outside Phoenix/Maricopa.
-- Claims that simulated seller or buyer behavior describes real people.
+- Real offers, appraisals, transactions, lending, insurance, taxation, or
+  consumer eligibility.
+- Causal comparisons of operators.
+- Claims that deed-to-deed duration is listing duration.
+- Claims that a recorded price difference is net profit.
+- Claims that generated price responses apply to Florida or any real market.
 
-## Data-generating process
-
-The environment contains four linked sources of uncertainty:
-
-1. **Exit value.** Property attributes, time, coarse geography, and market state
-   determine a latent value distribution.
-2. **Seller acceptance.** Acceptance rises monotonically with offer-to-value
-   ratio but varies with latent reservation value and convenience preference.
-3. **Buyer demand.** Weekly arrival and sale hazard fall as list-price premium
-   rises and vary with desirability, seasonality, mortgage rates, inventory, and
-   weeks on market.
-4. **Economics.** Repairs, selling costs, financing, and holding costs convert
-   transactions into contribution profit.
-
-The data generator is intentionally more nonlinear and heterogeneous than the
-fitted behavioral models. Training and evaluation environments use different
-seeds, and stress scenarios shift selected parameters.
-
-## Records and labels
-
-| Table | Grain | Principal labels |
-|---|---|---|
-| Acquisition | One property at quote time | Exit value, candidate-offer acceptance |
-| Property-week | One property at risk at the start of a listing week | Weekly sale event, conditional sale proceeds |
-| Policy episode | One accepted acquisition through sale or censoring | Profit, holding time, markdowns, loss, sell-through |
-
-Unsold homes are right-censored after the configured horizon. Conditional sale
-proceeds are defined only for sale events. The model must not impute a completed
-sale for a censored listing merely to simplify evaluation.
-
-## Temporal and entity boundaries
-
-- Every feature has an `available_at` timestamp or a documented inherited
-  availability rule.
-- Quote-time rows cannot contain inspection, repair, listing, or sale information
-  learned after acquisition.
-- Weekly rows contain only lagged demand observations available before the action.
-- Comparable sales and market aggregates are constructed strictly as of the
-  decision date.
-- Splits are chronological and grouped by parcel so repeat observations of the
-  same home cannot cross partitions.
-- A 120-day maturity buffer prevents unresolved outcomes from being labeled as
-  failures.
-
-## Known sources of bias
-
-- Public transaction data omit off-market activity and may revise attributes.
-- Repeat-sale homes are selected and may not represent the full housing stock.
-- Recorded structure and condition fields may be stale or missing.
-- Coarse geography captures amenities and access but can also proxy for protected
-  characteristics.
-- Simulator calibration to aggregate market distributions cannot validate
-  unobserved individual seller or buyer response.
-- A single market cannot establish transportability to another city or regime.
-
-## Privacy and governance
-
-Sample data must contain stable random identifiers, fictional display labels,
-and coarse geography. Owner names, contact details, exact addresses, and exact
-coordinates are unnecessary and prohibited in committed fixtures. Any locally
-downloaded raw records remain ignored.
-
-Protected-class attributes are not model inputs. Their omission does not by
-itself eliminate fairness concerns because geography and property characteristics
-can act as proxies. A real-data evaluation would need error, uncertainty, and
-automation coverage by coarse geography and data-density tier. The v0.1 release
-does not report those slice results.
-
-## Versioning and reproducibility
-
-Each run must write a manifest containing source checksums, configuration path,
-random seeds, dependency state, package version, and code revision. Release
-tables and figures must be traceable to that manifest. The repository does not
-version raw data or large fitted model objects.
+The complete construction and estimands are documented in
+[`docs/DATA_DESIGN.md`](../docs/DATA_DESIGN.md).
