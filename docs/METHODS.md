@@ -58,7 +58,7 @@ downside objective described below.
 ### Population
 
 The estimator uses improved single-family repeat sales with an observed prior
-sale no more than 4.5 years earlier. Sale prices must lie between $25,000 and $10
+sale no more than 4.5 years earlier. Sale prices must lie between \$25,000 and \$10
 million. Hillsborough requires the county-qualified flag. Orange uses its sale
 description where populated and uses a warranty-deed code as a proxy when the
 historical description is missing.
@@ -131,7 +131,7 @@ error, weighted $R^2$, interval coverage, and median interval width.
 
 Named iBuyer episodes begin with a classified operator acquisition and end with
 the first later deed where the same operator is grantor. Both deeds must report
-at least $10,000 in consideration. The screen excludes nominal or
+at least \$10,000 in consideration. The screen excludes nominal or
 administrative transfers that do not reveal interpretable purchase or resale
 prices. Completed, open
 right-censored, and administrative-horizon spells enter the modeling panel;
@@ -257,7 +257,7 @@ deliberately simple.
 ## 5. Dynamic decision rule
 
 The resale policy considers hold, 1 percent cut, 2.5 percent cut, and 5 percent
-cut actions over 17 weeks. It enforces a floor of 70 percent of reference value
+cut actions over 17 weeks. It enforces a floor of 70 percent of the observable pre-listing reference
 and applies a declared terminal-liquidation discount if inventory remains. For
 fitted cases, that floor is 70 percent of the observable pre-listing reference.
 

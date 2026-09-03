@@ -11,7 +11,7 @@ artifacts.
 data/
 ├── README.md
 ├── raw/          publisher downloads and local fetch manifest; ignored
-└── processed/    privacy-safe transaction and episode tables; ignored
+└── processed/    direct-identifier-reduced local analytical tables; ignored
 ```
 
 The code catalog contains exactly two current external sources:
@@ -70,7 +70,7 @@ are normalized to calendar dates.
 ## Valuation panel
 
 The Florida release builds the valuation panel from improved single-family
-transactions priced between $25,000 and $10 million and dated from 2010 onward.
+transactions priced between \$25,000 and \$10 million and dated from 2010 onward.
 Hillsborough requires its official qualification flag. Orange uses its sale
 description when observed and a `WD` warranty-deed proxy when that description
 is missing.
@@ -89,7 +89,7 @@ Orange 2024-forward rows are used only for external-market scoring.
 ## Operator episode grain
 
 One episode begins when a classified operator is grantee on a deed with at least
-$10,000 in recorded consideration. It ends at the first later deed where the same
+\$10,000 in recorded consideration. It ends at the first later deed where the same
 operator is grantor and consideration meets the same threshold. This screen
 excludes nominal or administrative transfers that do not reveal interpretable
 purchase or resale prices. Open episodes are right-censored.

@@ -1,6 +1,6 @@
 # Release Evidence
 
-This page is an index to the generated evidence for Offer-to-Exit 0.2.0. It does
+This page is an index to the released evidence for Offer-to-Exit 0.2.0. It does
 not copy headline metrics because the public county sources can change and the
 artifacts are regenerated from the current retrieval.
 

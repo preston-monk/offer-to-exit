@@ -75,7 +75,7 @@ The feasible actions are:
 - reduce it by 5 percent.
 
 The policy cannot increase price. A markdown that would take price below 70
-percent of reference value is infeasible. There is no separate cooldown or
+percent of the observable pre-listing reference is infeasible. There is no separate cooldown or
 maximum-markdown-count constraint.
 
 ### Transition

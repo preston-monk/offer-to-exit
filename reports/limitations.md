@@ -66,7 +66,7 @@ corporate-family registry with validity dates in this release.
 The linker infers ownership from deed-party roles. It does not observe contract
 dates, listing dates, renovations, concessions, affiliate transfers, or
 operational status. Both the acquisition deed and the first later eligible
-operator-as-grantor deed must have at least $10,000 in recorded consideration;
+operator-as-grantor deed must have at least \$10,000 in recorded consideration;
 the resulting linked pair may not always be
 the economically relevant retail exit.
 

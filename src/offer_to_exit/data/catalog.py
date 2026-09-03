@@ -52,8 +52,8 @@ SOURCES: Final[dict[str, DataSource]] = {
         update_cadence="weekly; downloader records the discovered release filename",
         approximate_bytes=68_000_000,
         redistribution=(
-            "Do not commit the raw archive or party names; publish only hashed, "
-            "privacy-safe analytical records."
+            "Do not commit the raw archive or party names; keep analytical inputs "
+            "direct-identifier-reduced and publish only aggregates and hashes."
         ),
         attribution="Hillsborough County Property Appraiser",
         contains_pii=True,
@@ -63,13 +63,9 @@ SOURCES: Final[dict[str, DataSource]] = {
         key="orange_sales",
         title="Orange County All Sales",
         publisher="Orange County Property Appraiser",
-        url=(
-            "https://vgispublic.ocpafl.org/server/rest/services/"
-            "Webmap/SALES/MapServer/5/query"
-        ),
+        url=("https://vgispublic.ocpafl.org/server/rest/services/Webmap/SALES/MapServer/5/query"),
         landing_page=(
-            "https://vgispublic.ocpafl.org/server/rest/services/"
-            "Webmap/SALES/MapServer/5"
+            "https://vgispublic.ocpafl.org/server/rest/services/Webmap/SALES/MapServer/5"
         ),
         filename="orange_all_sales.jsonl.gz",
         grain="recorded property transfer",
@@ -80,8 +76,8 @@ SOURCES: Final[dict[str, DataSource]] = {
         update_cadence="live ArcGIS feature service",
         approximate_bytes=None,
         redistribution=(
-            "Do not commit the raw response or party names; publish only hashed, "
-            "privacy-safe analytical records."
+            "Do not commit the raw response or party names; keep analytical inputs "
+            "direct-identifier-reduced and publish only aggregates and hashes."
         ),
         attribution="Orange County Property Appraiser",
         contains_pii=True,

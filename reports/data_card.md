@@ -22,7 +22,7 @@ being read as estimates for Florida households or buyers.
 
 These are mutable public sources. The local raw-data manifest records retrieval
 metadata and file hashes. The public release manifest records hashes for the
-privacy-safe inputs and aggregate artifacts.
+local direct-identifier-reduced inputs and aggregate artifacts.
 
 ## Privacy treatment
 
@@ -55,7 +55,7 @@ multi-parcel, or administrative deed.
 ## Repeat-sale analytical sample
 
 The target is recorded price among improved single-family repeat sales with a
-prior observed sale no more than 4.5 years earlier. This high-turnover target is
+prior eligible sale no more than 4.5 years earlier. This high-turnover target is
 used because the current Orange service begins in 2022 and because the two
 county sources do not share a sufficiently rich historical structural-feature
 set for a symmetric cross-sectional model.
@@ -63,7 +63,7 @@ set for a symmetric cross-sectional model.
 The initial screen requires:
 
 - sale date on or after January 1, 2010;
-- sale price from $25,000 through $10 million;
+- sale price from \$25,000 through \$10 million;
 - an improved-property indicator; and
 - a single-family DOR or property-type code.
 
@@ -99,7 +99,7 @@ repeat-sale model.
 ## Named iBuyer episodes
 
 An acquisition is a deed on which a classified operator is grantee and recorded
-consideration is at least $10,000. A completed episode ends at the first later
+consideration is at least \$10,000. A completed episode ends at the first later
 deed for the same parcel on which that operator is grantor and consideration
 meets the same threshold. The screen excludes nominal or administrative
 transfers that do not reveal interpretable purchase or resale prices. Open episodes are right-censored at each county's latest valid
@@ -136,8 +136,8 @@ The controlled generator creates a location-neutral housing population. It
 constructs observable appraisal-like pre-offer and pre-listing references,
 randomizes acquisition offer ratios relative to the first and list-price premia
 relative to the second, generates responses from known log-odds equations, and
-retains right-censored listing histories. The controlled hazard equation omits
-no latent-demand regressor; random event draws provide outcome noise.
+retains right-censored listing histories. The controlled hazard equation
+contains no latent-demand term; random event draws provide outcome noise.
 
 Training and evaluation use independent random seeds. The evaluation environment
 changes synthetic home values, square footage, market heat, mortgage rates,

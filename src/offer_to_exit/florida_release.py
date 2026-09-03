@@ -454,7 +454,7 @@ def render_florida_report(payload: dict[str, Any], output: Path) -> Path:
     equal metric weight. Hazard fit and evaluation use the ordinary person-period likelihood.
     Kaplan-Meier summaries use ownership episodes.</p></div>
     <div class="metrics">
-      {_metric(f"{transaction_total:,}", "privacy-safe deed rows", "Two official county systems")}
+      {_metric(f"{transaction_total:,}", "normalized deed rows", "Two official county systems")}
       {_metric(f"{episode_total:,}", "linked iBuyer ownership spells", f"{duration_common_window_total:,} common-window descriptive episodes")}
       {_metric(_money(orlando_value["mean_absolute_error"]), "Orlando repeat-sale MAE", valuation_comparison)}
       {_metric(_decimal(orlando_duration["risk_row_auc"], 3), "Orlando disposition-hazard AUC", "Tampa-only specification; no Orlando refit")}

@@ -3,7 +3,7 @@
 **A public GitHub project on the property-level economics of a housing market maker.**
 
 [![CI](https://github.com/preston-monk/offer-to-exit/actions/workflows/ci.yml/badge.svg)](https://github.com/preston-monk/offer-to-exit/actions/workflows/ci.yml)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-3776AB.svg)](https://www.python.org/)
+[![Tested on Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg)](https://www.python.org/)
 
 [Open the Florida evidence report](https://preston-monk.github.io/offer-to-exit/artifacts/release/florida_evidence.html) ·
 [Open the controlled decision laboratory](https://preston-monk.github.io/offer-to-exit/artifacts/release/demo.html)
@@ -32,8 +32,8 @@ The repository contains two complementary sources of evidence:
    generated experiment randomizes acquisition-offer ratios relative to an
    observable pre-offer reference and list-price premia relative to an observable
    pre-listing reference. It fits the behavioral models, passes those fitted
-   models into a finite-horizon optimizer, and tests whether the complete
-   decision system recovers the intended economic responses.
+   models into a finite-horizon optimizer, and tests whether the behavioral
+   models recover the known responses and how the linked decision system behaves.
 
 Those layers answer different questions. The Florida records support predictive
 and descriptive claims about recorded prices and title duration. The controlled
@@ -179,7 +179,7 @@ The pipeline:
 - removes names, addresses, coordinates, and raw parcel identifiers;
 - hashes parcel identifiers in a market-specific namespace;
 - preserves property-use codes as strings, including leading zeros; and
-- links each named acquisition deed with at least $10,000 in recorded
+- links each named acquisition deed with at least \$10,000 in recorded
   consideration to the first later deed on which the same operator is the seller
   and consideration meets the same threshold,
   retaining open spells as right-censored observations.
@@ -427,7 +427,7 @@ reference and remain within the randomized offer-ratio support $[0.82,1.02]$;
 the fitted acceptance adapter refuses extrapolation. Initial and reachable list
 prices remain within the randomized premium support $[-0.30,0.15]$ relative to
 the observable pre-listing reference, and the fitted hazard adapter also fails
-closed outside support. The terminal state applies a stress-specific liquidation
+closed outside support. The terminal state applies a case-specific liquidation
 discount. In this version, the optimizer remixes the stress weights each week after a no-sale
 outcome rather than carrying a persistent latent regime and updating beliefs.
 That simplified state transition is inspectable and intentionally listed as a

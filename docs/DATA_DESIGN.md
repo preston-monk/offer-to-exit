@@ -40,7 +40,7 @@ fields, limited property attributes, and grantor and grantee names.
 
 The raw files are mutable publisher snapshots. A local fetch manifest records
 the source URL, retrieval time, byte count, and SHA-256 hash. The committed
-Florida release manifest records hashes for the privacy-safe input tables and
+Florida release manifest records hashes for the local direct-identifier-reduced input tables and
 the aggregate output artifacts. It also records the exact per-market observation
 end used to right-censor open ownership spells.
 
@@ -80,7 +80,7 @@ hedonic model. The implemented target is therefore deliberately narrower:
 > with a usable prior eligible sale no more than 4.5 years earlier.
 
 The transaction screen requires a date on or after January 1, 2010, a recorded
-price from $25,000 through $10 million, an improved-property flag, and a
+price from \$25,000 through \$10 million, an improved-property flag, and a
 single-family use code. It then applies a market-specific transfer screen:
 
 - Hillsborough observations must carry the county's qualified-sale flag.
@@ -112,9 +112,9 @@ median in the prior eligible sale's quarter, and $M_{m,q-1}$ the median in the q
 before the current sale. The implemented model uses
 
 ```math
-x_i=log\left(\frac{P_{imq_i^-}}{M_{mq_i^-}}\right),
+x_i=\log\left(\frac{P_{imq_i^-}}{M_{mq_i^-}}\right),
 \qquad
-y_i=log\left(\frac{P_{imq}}{M_{m,q-1}}\right).
+y_i=\log\left(\frac{P_{imq}}{M_{m,q-1}}\right).
 ```
 
 The other predictors are elapsed years since the prior eligible sale and current calendar
@@ -161,7 +161,7 @@ scale.
 ## Named iBuyer ownership spells
 
 An episode begins when a classified operator is the grantee on a deed with at
-least $10,000 in recorded consideration. A completed episode ends at the first
+least \$10,000 in recorded consideration. A completed episode ends at the first
 later deed for the same parcel on which the same operator is the grantor and
 consideration meets the same threshold.
 A resale deed is consumed at most once. If another
@@ -220,7 +220,7 @@ conformal probabilities.
 
 ## Released evidence
 
-The generated Florida bundle contains only aggregate outputs:
+The released Florida bundle contains only aggregate outputs:
 
 - [`florida_metrics.v2.json`](../artifacts/release/florida_metrics.v2.json),
   including source counts, sample selection, prior-sale gaps, split counts, and
